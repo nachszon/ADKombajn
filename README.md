@@ -52,7 +52,7 @@ $text = [System.IO.File]::ReadAllText($fullPath)
 
 $utf8Bom = New-Object System.Text.UTF8Encoding -ArgumentList $true
 [System.IO.File]::WriteAllText($fullPath, $text, $utf8Bom)
-
+```
 
 ## Running the application
 
