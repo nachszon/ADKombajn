@@ -167,7 +167,9 @@ When reporting an issue, include:
 
 * Windows version
 * PowerShell version
-* Active Directory module version
+* Windows PowerShell version
+* ADKombajn version
+* steps required to reproduce the problem
 * application version
 * steps required to reproduce the problem
 * error message with confidential information removed
