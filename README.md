@@ -95,13 +95,18 @@ The amount of information returned depends on the user's Active Directory permis
 ```text
 ADKombajn/
 ├── ADKombajn.ps1
+├── build.ps1
+├── kombajn.ico
 ├── README.md
-├── LICENSE
+├── README.pl.md
 ├── CHANGELOG.md
+├── LICENSE
 ├── docs/
 │   └── images/
+│       └── adkombajn-main.png
 └── src/
 ```
+The `src/` directory is reserved for future modularization of the application code.
 
 The final structure may change as the application is split into separate modules.
 
