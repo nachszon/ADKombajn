@@ -34,6 +34,24 @@ More screenshots will be added as the project develops.
 * Windows PowerShell 5.1
 * network access to an Active Directory domain
 * permissions required to read the requested Active Directory objects
+  
+ ### Encoding note
+
+ADKombajn targets Windows PowerShell 5.1.  
+When editing `ADKombajn.ps1`, save the file as **UTF-8 with BOM**.
+
+Windows PowerShell 5.1 may incorrectly parse UTF-8 files without BOM when the script contains non-ASCII characters, for example Polish UI labels.
+
+To convert the file to UTF-8 with BOM using Windows PowerShell:
+
+```powershell
+$path = ".\ADKombajn.ps1"
+$fullPath = (Resolve-Path -LiteralPath $path).Path
+
+$text = [System.IO.File]::ReadAllText($fullPath)
+
+$utf8Bom = New-Object System.Text.UTF8Encoding -ArgumentList $true
+[System.IO.File]::WriteAllText($fullPath, $text, $utf8Bom)
 
 
 ## Running the application
