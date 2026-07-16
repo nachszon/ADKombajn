@@ -2,6 +2,8 @@
 
 A lightweight Windows GUI tool for common Microsoft Active Directory support tasks.
 
+"Kombajn" is a Polish word often used for an all-in-one multi-purpose tool — and that is exactly the idea behind this project.
+
 **ADKombajn is built for application support teams that need quick Active Directory account insight without installing RSAT or using the ActiveDirectory PowerShell module.**
 
 ADKombajn was created to simplify everyday Active Directory support tasks by collecting frequently used account, group and manager-related information in one place.
