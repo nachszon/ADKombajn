@@ -1,6 +1,8 @@
 # ADKombajn
 
-A Windows GUI tool for browsing and managing Microsoft Active Directory accounts.
+A lightweight Windows GUI tool for common Microsoft Active Directory support tasks.
+
+**ADKombajn is built for application support teams that need quick Active Directory account insight without installing RSAT or using the ActiveDirectory PowerShell module.**
 
 ADKombajn was created to simplify everyday Active Directory support tasks by collecting frequently used account, group and manager-related information in one place.
 
@@ -13,13 +15,18 @@ The application is written in PowerShell and uses a graphical Windows interface.
 ADKombajn currently provides:
 
 * Active Directory account lookup by login
+* password validation
+* password change using LDAP `unicodePwd`
 * basic account information
 * account status and expiration information
+* account properties view
 * group membership list
+* domain group members view
 * accounts assigned to the selected user as manager
 * groups managed by the selected user
 * operation log displayed directly in the application
 * tab-based interface for separating different types of information
+* CSV/XLSX export for selected result tables
 * copy-friendly output for further analysis or reporting
 
 ## Screenshots
@@ -32,10 +39,11 @@ More screenshots will be added as the project develops.
 
 * Windows 10, Windows 11 or Windows Server
 * Windows PowerShell 5.1
+* `ADKombajn.ps1` saved as UTF-8 with BOM
 * network access to an Active Directory domain
 * permissions required to read the requested Active Directory objects
-  
- ### Encoding note
+
+### Encoding note
 
 ADKombajn targets Windows PowerShell 5.1.  
 When editing `ADKombajn.ps1`, save the file as **UTF-8 with BOM**.
@@ -78,12 +86,15 @@ Alternatively, start the script from an existing PowerShell session:
 ## Usage
 
 1. Start ADKombajn.
-2. Enter the account login in the **Login konta** field.
-3. Start the search.
-4. Review the information available in the application tabs:
+2. Enter the domain or domain controller in the **Domena/DC** field.
+3. Enter the account login in the **Login konta** field.
+4. Review or run the operation available in the application tabs:
 
-   * account information
-   * group memberships
+   * password validation
+   * password change
+   * account properties
+   * account group memberships
+   * domain group members
    * manager accounts
    * managed groups
    * operation log
@@ -106,6 +117,7 @@ ADKombajn/
 │       └── adkombajn-main.png
 └── src/
 ```
+
 The `src/` directory is reserved for future modularization of the application code.
 
 The final structure may change as the application is split into separate modules.
@@ -171,11 +183,8 @@ Bug reports, ideas and pull requests are welcome.
 When reporting an issue, include:
 
 * Windows version
-* PowerShell version
 * Windows PowerShell version
 * ADKombajn version
-* steps required to reproduce the problem
-* application version
 * steps required to reproduce the problem
 * error message with confidential information removed
 
