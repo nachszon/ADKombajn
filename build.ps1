@@ -1,12 +1,27 @@
-﻿param(
+param(
     [string]$Version = "2.12.0.0",
     [string]$InputFile = ".\ADKombajn.ps1",
-    [string]$OutputFile = ".\ADKombajn.exe",
-    [string]$IconFile = ".\kombajn.ico"
+    [string]$IconFile = ".\kombajn.ico",
+    [string]$OutputDirectory = "."
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+
+function Get-ReleaseVersion {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Version
+    )
+
+    $v = [System.Version]$Version
+
+    if ($v.Revision -eq 0) {
+        return "{0}.{1}.{2}" -f $v.Major, $v.Minor, $v.Build
+    }
+
+    return $Version
+}
 
 function Test-Utf8Bom {
     param(
@@ -18,7 +33,8 @@ function Test-Utf8Bom {
         throw "File not found: $Path"
     }
 
-    $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $Path).Path)
+    $fullPath = (Resolve-Path -LiteralPath $Path).Path
+    $bytes = [System.IO.File]::ReadAllBytes($fullPath)
 
     if ($bytes.Length -lt 3) {
         return $false
@@ -48,10 +64,19 @@ function Show-BomInfo {
     }
 }
 
+$ReleaseVersion = Get-ReleaseVersion -Version $Version
+
+if (-not (Test-Path -LiteralPath $OutputDirectory)) {
+    New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+}
+
+$OutputFile = Join-Path $OutputDirectory ("ADKombajn-{0}-win-x64.exe" -f $ReleaseVersion)
+
 Write-Host "ADKombajn build"
-Write-Host "Version: $Version"
-Write-Host "Input:   $InputFile"
-Write-Host "Output:  $OutputFile"
+Write-Host "Version:         $Version"
+Write-Host "Release version: $ReleaseVersion"
+Write-Host "Input:           $InputFile"
+Write-Host "Output:          $OutputFile"
 Write-Host ""
 
 if (-not (Test-Path -LiteralPath $InputFile)) {
@@ -111,4 +136,4 @@ if (Test-Path -LiteralPath $OutputFile) {
 Invoke-PS2EXE @ps2exeArgs
 
 Write-Host ""
-Write-Host "Build completed: $OutputFile" -ForegroundColor Green
+Write-Host "Release asset ready: $OutputFile" -ForegroundColor Green
