@@ -141,7 +141,7 @@ Organization-specific modules and internal tools are not included in the public 
 
 * the user interface is currently available only in Polish
 * the application currently targets Windows PowerShell 5.1
-* functionality depends on the Active Directory PowerShell module
+* functionality depends on .NET Directory Services and LDAP access to Active Directory
 * Active Directory permissions may limit the returned results
 * the application has currently been tested only in selected domain environments
 
