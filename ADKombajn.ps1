@@ -1,8 +1,13 @@
-﻿#requires -version 5.1
-# Build: 2.12.0-public
-# ADKombajn - rewritten from scratch
+﻿#requires -Version 5.1
+# Build: 1.0.0.19-public
+# AD Kombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
-# Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT and no ActiveDirectory module.
+# Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
+
+param(
+    [ValidateSet("pl", "en")]
+    [string]$Language
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -22,10 +27,9 @@ try { [System.Windows.Forms.Application]::SetUnhandledExceptionMode([System.Wind
 # ==================================================
 # Colored TabControl tabs
 # ==================================================
-# The classic WinForms TabControl does not make it easy to color only the tab labels.
-# Therefore, a small OwnerDraw control written in C# is used to avoid issues
-# with Paint/DrawItem events after compilation with PS2EXE.
-# Note: the class name has a version suffix because Add-Type does not overwrite an already loaded class in the same PowerShell session.
+# The standard WinForms TabControl does not provide a convenient way to color tab labels.
+# A small C# OwnerDraw control is used to avoid Paint/DrawItem event issues after PS2EXE compilation.
+# The class name has a version suffix because Add-Type cannot replace a class already loaded in the same session.
 try {
     Add-Type -ReferencedAssemblies "System.Windows.Forms","System.Drawing" -TypeDefinition @'
 using System;
@@ -33,7 +37,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-public class KombajnColorTabControlV21Public : TabControl
+public class KombajnColorTabControlV21 : TabControl
 {
     public Color ValidateTabColor = Color.FromArgb(0, 135, 86);
     public Color ChangeTabColor   = Color.FromArgb(214, 126, 28);
@@ -46,7 +50,7 @@ public class KombajnColorTabControlV21Public : TabControl
     public Color InactiveTextColor = Color.FromArgb(45, 55, 70);
     public Color SelectedTextColor = Color.White;
 
-    public KombajnColorTabControlV21Public()
+    public KombajnColorTabControlV21()
     {
         this.DrawMode = TabDrawMode.OwnerDrawFixed;
         this.SizeMode = TabSizeMode.Normal;
@@ -144,8 +148,9 @@ catch { }
 # ==================================================
 
 $script:AppName = "AD Kombajn"
-$script:AppVersion = "2.12.0"
+$script:AppVersion = "2.13.0"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
+$script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
 $script:ManagedRowsLoaded = $false
 $script:AccountPropertyRows = @()
@@ -157,6 +162,457 @@ $script:StatusLabel = $null
 $script:txtLog = $null
 $script:txtLogs = @()
 $script:AppWindowIcon = $null
+
+# ==================================================
+# Localization
+# ==================================================
+
+$script:Translations = @{
+    pl = @{
+        "App.WindowTitle" = "{0} {1} - bez RSAT"
+        "Splash.Subtitle" = "HASŁA  •  KONTA  •  GRUPY"
+        "Splash.Author" = "Autor: {0}"
+        "Splash.Version" = "WERSJA {0}"
+        "Splash.Loading" = "Ładuję interfejs..."
+        "Header.Subtitle" = "Walidacja, zmiana hasła, właściwości konta, grupy konta, konta managera, log"
+        "Header.Author" = "Autor: {0}"
+        "Busy.Title" = "Przetwarzanie"
+        "Busy.Message" = "Proszę czekać..."
+        "Busy.Detail" = "Operacja jest wykonywana w Active Directory."
+        "Busy.DoNotClose" = "Proszę nie zamykać aplikacji w trakcie operacji."
+        "Error.GuiUnhandled" = "Nieobsłużony błąd interfejsu: {0}"
+        "Error.AppTitle" = "Błąd AD Kombajna"
+        "Ldap.HintPasswordPolicy" = "Prawdopodobnie polityka haseł: złożoność, historia haseł, minimalny wiek hasła albo zbyt krótkie hasło."
+        "Ldap.HintCredentials" = "Prawdopodobnie błędny login albo stare hasło."
+        "Ldap.HintConnection" = "Nie mogę połączyć się z kontrolerem domeny. Sprawdź domenę/DC, sieć, port 389/636 i LDAPS."
+        "Ldap.HintSecureChannel" = "AD wymaga bezpiecznego kanału. Spróbuj LDAPS 636 albo upewnij się, że działa signing/sealing po 389."
+        "Ldap.Code" = "Kod: {0}"
+        "Ldap.Hint" = "Podpowiedź: {0}"
+        "Password.Valid" = "Hasło jest poprawne."
+        "Password.Invalid" = "Hasło jest niepoprawne albo konto nie może się uwierzytelnić."
+        "Password.Changed" = "Hasło zostało zmienione."
+        "Error.AccountNotFound" = "Nie znaleziono konta: {0}\{1}"
+        "Error.ManagerNotFound" = "Nie znaleziono konta managera: {0}\{1}"
+        "Error.GroupNotFound" = "Nie znaleziono grupy: {0}\{1}"
+        "Error.ExportNoAccounts" = "Brak kont do eksportu."
+        "Error.ExcelColumn" = "Nieprawidłowy numer kolumny Excela: {0}"
+        "Value.Never" = "Nigdy"
+        "Value.UnknownObject" = "Nie udało się pobrać obiektu po DN"
+        "Progress.FindAccount" = "Szukam konta w AD"
+        "Progress.ReadAccount" = "Odczytuję atrybuty konta"
+        "Progress.ReadMemberOf" = "Pobieram grupy memberOf"
+        "Progress.CheckPrimaryGroup" = "Sprawdzam grupę podstawową"
+        "Progress.OrganizeResult" = "Porządkuję wynik"
+        "Progress.DeduplicateGroups" = "Usuwam duplikaty i sortuję listę grup..."
+        "Progress.ReadMemberList" = "Czytam listę member"
+        "Progress.Range" = "Zakres {0} - {1}"
+        "Progress.FindGroup" = "Szukam grupy w AD"
+        "Progress.GetMemberList" = "Pobieram listę członków"
+        "Progress.GetMemberObjects" = "Pobieram obiekty członków"
+        "Progress.SortGroupMembers" = "Sortuję listę członków grupy..."
+        "Progress.FindManager" = "Szukam konta managera"
+        "Progress.FindManagedGroups" = "Szukam grup managera"
+        "Progress.OrganizeManagedGroups" = "Porządkuję grupy managera"
+        "Context.Title" = "Kontekst pracy"
+        "Context.Domain" = "Domena / DC:"
+        "Context.AccountLogin" = "Login konta:"
+        "Context.Mode" = "Domyślnie: LDAP 389 + signing/sealing, bez RSAT."
+        "Tab.ValidatePassword" = "Walidacja hasła"
+        "Tab.ChangePassword" = "Zmiana hasła"
+        "Tab.ManagerAccounts" = "Konta managera"
+        "Tab.AccountProperties" = "Właściwości konta"
+        "Tab.AccountGroups" = "Grupy konta"
+        "Tab.GroupMembers" = "Członkowie grupy"
+        "Tab.ManagedGroups" = "Grupy managera"
+        "Tab.Log" = "Log"
+        "Validation.Title" = "Walidacja hasła"
+        "Validation.Password" = "Hasło:"
+        "Validation.ShowPassword" = "Pokaż hasło"
+        "Validation.Check" = "Sprawdź"
+        "Validation.Hint" = "Walidacja używa PrincipalContext.ValidateCredentials(), bez RSAT i bez modułu ActiveDirectory."
+        "Change.Title" = "Zmiana hasła: stare → nowe"
+        "Change.OldPassword" = "Stare hasło:"
+        "Change.NewPassword" = "Nowe hasło:"
+        "Change.RepeatPassword" = "Powtórz:"
+        "Change.ShowPasswords" = "Pokaż hasła"
+        "Change.Button" = "Zmień hasło"
+        "Change.Hint" = "Zmiana bez UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE starego + ADD nowego."
+        "Common.Clear" = "Wyczyść"
+        "Common.CopySelected" = "Kopiuj zaznaczone"
+        "Common.CopyAll" = "Kopiuj wszystko"
+        "Common.Log" = "Log"
+        "Common.ClearLog" = "Wyczyść log"
+        "Common.CopyLog" = "Kopiuj log"
+        "Log.Events" = "Log zdarzeń"
+        "AccountProperties.Get" = "Pobierz właściwości"
+        "AccountProperties.Info" = "Pokazuje atrybuty LDAP konta, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADUser -Properties *."
+        "AccountProperties.CountEmpty" = "Właściwości: -"
+        "AccountProperties.Count" = "Właściwości: {0}"
+        "AccountGroups.Get" = "Pobierz grupy"
+        "AccountGroups.Info" = "Pokazuje grupy domenowe konta: memberOf oraz primaryGroupID, bez RSAT."
+        "Groups.CountEmpty" = "Grupy: -"
+        "Groups.Count" = "Grupy: {0}"
+        "GroupMembers.Group" = "Grupa:"
+        "GroupMembers.Get" = "Pobierz członków"
+        "GroupMembers.Info" = "Pokazuje bezpośrednich członków grupy domenowej z atrybutu member. Grupy zagnieżdżone są pokazane jako obiekty grupowe, bez rozwijania rekurencyjnego."
+        "GroupMembers.CountEmpty" = "Członkowie: -"
+        "GroupMembers.Count" = "Członkowie: {0}"
+        "ManagedGroups.Get" = "Pobierz grupy"
+        "ManagedGroups.Info" = "Pokazuje grupy domenowe, których atrybut manager wskazuje konto z pola Login konta."
+        "ManagerAccounts.Get" = "Pobierz konta"
+        "ManagerAccounts.ExportCsv" = "Eksport CSV"
+        "ManagerAccounts.ExportXlsx" = "Eksport XLSX"
+        "ManagerAccounts.CopyLogins" = "Kopiuj loginy"
+        "ManagerAccounts.Show" = "Pokaż:"
+        "ManagerAccounts.Search" = "Szukaj:"
+        "ManagerAccounts.ExportInfo" = "Eksport obejmuje aktualnie widoczne wiersze, czyli filtr + wyszukiwarkę."
+        "ManagerAccounts.CountEmpty" = "Konta: -"
+        "ManagerAccounts.Count" = "Konta: {0}"
+        "ManagerAccounts.CountFiltered" = "Konta: {0} z {1}"
+        "Filter.All" = "wszystkie"
+        "Filter.Active" = "aktywne"
+        "Filter.Inactive" = "nieaktywne"
+        "Column.Attribute" = "Atrybut"
+        "Column.Value" = "Wartość"
+        "Column.Count" = "Ile"
+        "Column.Name" = "Nazwa"
+        "Column.GroupLogin" = "Login grupy"
+        "Column.DisplayName" = "Display name"
+        "Column.Type" = "Typ"
+        "Column.Scope" = "Zakres"
+        "Column.Source" = "Źródło"
+        "Column.Description" = "Opis"
+        "Column.Login" = "Login"
+        "Column.Enabled" = "Aktywne"
+        "Column.PasswordLastSet" = "Hasło zmienione"
+        "Export.SheetName" = "Konta managera"
+        "Export.FileNameBase" = "konta_managera"
+        "Export.NoDataPart" = "brak"
+        "Export.SaveTitle" = "Zapisz konta managera"
+        "Export.CsvFilter" = "CSV rozdzielany średnikiem (*.csv)|*.csv|Wszystkie pliki (*.*)|*.*"
+        "Export.XlsxFilter" = "Excel Workbook (*.xlsx)|*.xlsx|Wszystkie pliki (*.*)|*.*"
+        "Dialog.NoData" = "Brak danych"
+        "Dialog.NoSelection" = "Brak zaznaczenia"
+        "Status.Filter" = "Filtr: {0}, tekst: '{1}' - pokazano {2} z {3} kont."
+        "Status.GetManagerAccountsFirst" = "Najpierw pobierz konta managera."
+        "Status.FilterHasNoAccounts" = "Bieżący filtr nie zawiera żadnych kont do eksportu."
+        "Status.ExportCancelled" = "Eksport anulowany."
+        "Status.Exporting" = "Eksportuję {0} kont do {1}..."
+        "Status.ExportReady" = "OK - eksport gotowy: {0}"
+        "Status.ExportCompleted" = "Eksport zakończony.`r`n`r`nPlik:`r`n{0}"
+        "Status.ExportCompletedTitle" = "Eksport gotowy"
+        "Status.ExportError" = "Błąd eksportu: {0}"
+        "Status.ExportFailed" = "Nie udało się wykonać eksportu.`r`n`r`n{0}"
+        "Status.ExportErrorTitle" = "Błąd eksportu"
+        "Status.SelectRow" = "Zaznacz co najmniej jeden wiersz."
+        "Status.LoginsCopied" = "Skopiowano loginów do schowka: {0}"
+        "Status.ClipboardFailed" = "Nie udało się skopiować do schowka: {0}"
+        "Status.ReadyShort" = "Gotowy."
+        "Status.Ready" = "Gotowy. Podaj domenę/DC i login."
+        "Status.LogCleared" = "Log wyczyszczony."
+        "Status.LogEmpty" = "Log jest pusty."
+        "Status.LogCopied" = "Log skopiowany do schowka."
+        "Status.LogCopyFailed" = "Nie udało się skopiować logu: {0}"
+        "Status.ValidationPasswordCleared" = "Wyczyszczono hasło walidacji."
+        "Status.ChangeFieldsCleared" = "Wyczyszczono pola zmiany hasła."
+        "Status.EnterValidationData" = "Podaj domenę/DC, login i hasło do walidacji."
+        "Status.ValidatingPassword" = "Sprawdzam hasło dla {0}\{1}..."
+        "Status.PasswordValid" = "OK - hasło jest poprawne dla {0}\{1}."
+        "Status.PasswordInvalid" = "NIE OK - hasło nie przeszło walidacji."
+        "Status.EnterDomainLogin" = "Podaj domenę/DC i login."
+        "Status.EnterPasswordChangeData" = "Podaj stare hasło, nowe hasło i powtórzenie nowego hasła."
+        "Status.PasswordsDiffer" = "Nowe hasła nie są identyczne."
+        "Status.PasswordUnchanged" = "Nowe hasło jest takie samo jak stare."
+        "Status.ConfirmPasswordChange" = "Zmienić hasło dla konta {0}\{1}?`r`n`r`nOperacja używa starego i nowego hasła, bez resetu administracyjnego."
+        "Status.ConfirmPasswordChangeTitle" = "Potwierdzenie zmiany hasła"
+        "Status.PasswordChangeCancelled" = "Zmiana hasła anulowana."
+        "Status.ChangingPassword" = "Zmieniam hasło dla {0}\{1}..."
+        "Status.PasswordChanged" = "OK - hasło zostało zmienione dla {0}\{1}."
+        "Status.PasswordChangeError" = "Błąd zmiany hasła dla {0}\{1}."
+        "Status.EnterAccount" = "Podaj domenę/DC i login konta."
+        "Status.GettingAccountProperties" = "Pobieram właściwości konta {0}\{1}..."
+        "Status.AccountPropertiesReceived" = "OK - pobrano właściwości: {0}."
+        "Status.AccountPropertiesError" = "Błąd pobierania właściwości konta: {0}"
+        "Status.AccountPropertiesCleared" = "Właściwości konta wyczyszczone."
+        "Status.SelectProperties" = "Zaznacz właściwości do skopiowania."
+        "Status.PropertiesCopied" = "Skopiowano zaznaczone właściwości: {0}."
+        "Status.PropertiesCopyFailed" = "Nie udało się skopiować właściwości: {0}"
+        "Status.NoProperties" = "Brak właściwości konta do skopiowania."
+        "Status.AllPropertiesCopied" = "Skopiowano wszystkie właściwości: {0}."
+        "Status.GettingAccountGroups" = "Pobieram grupy konta {0}\{1}..."
+        "Status.NoAccountGroups" = "OK - nie znaleziono grup dla konta {0}\{1}."
+        "Status.AccountGroupsReceived" = "OK - pobrano grupy konta: {0}."
+        "Status.AccountGroupsError" = "Błąd pobierania grup konta: {0}"
+        "Status.AccountGroupsCleared" = "Lista grup konta wyczyszczona."
+        "Status.SelectGroups" = "Zaznacz grupy do skopiowania."
+        "Status.GroupsCopied" = "Skopiowano zaznaczone grupy: {0}."
+        "Status.GroupsCopyFailed" = "Nie udało się skopiować grup: {0}"
+        "Status.NoAccountGroupsToCopy" = "Brak grup konta do skopiowania."
+        "Status.AllGroupsCopied" = "Skopiowano wszystkie grupy: {0}."
+        "Status.EnterDomain" = "Podaj domenę/DC."
+        "Status.EnterGroup" = "Podaj nazwę grupy domenowej."
+        "Status.GettingGroupMembers" = "Pobieram członków grupy {0}\{1}..."
+        "Status.NoGroupMembers" = "OK - grupa {0}\{1} nie ma bezpośrednich członków albo nie udało się ich odczytać."
+        "Status.GroupMembersReceived" = "OK - pobrano członków grupy: {0}."
+        "Status.GroupMembersError" = "Błąd pobierania członków grupy: {0}"
+        "Status.GroupMembersCleared" = "Lista członków grupy wyczyszczona."
+        "Status.SelectGroupMembers" = "Zaznacz członków grupy do skopiowania."
+        "Status.GroupMembersCopied" = "Skopiowano zaznaczonych członków grupy: {0}."
+        "Status.GroupMembersCopyFailed" = "Nie udało się skopiować członków grupy: {0}"
+        "Status.NoGroupMembersToCopy" = "Brak członków grupy do skopiowania."
+        "Status.AllGroupMembersCopied" = "Skopiowano wszystkich członków grupy: {0}."
+        "Status.EnterManager" = "Podaj domenę/DC i login managera."
+        "Status.GettingManagedGroups" = "Pobieram grupy, gdzie managedBy wskazuje {0}\{1}..."
+        "Status.NoManagedGroups" = "OK - nie znaleziono grup managedBy dla {0}\{1}."
+        "Status.ManagedGroupsReceived" = "OK - znaleziono grup managera: {0}."
+        "Status.ManagedGroupsError" = "Błąd pobierania grup managera: {0}"
+        "Status.ManagedGroupsCleared" = "Lista grup managera wyczyszczona."
+        "Status.SelectManagedGroups" = "Zaznacz grupy managera do skopiowania."
+        "Status.ManagedGroupsCopied" = "Skopiowano zaznaczone grupy managera: {0}."
+        "Status.ManagedGroupsCopyFailed" = "Nie udało się skopiować grup managera: {0}"
+        "Status.NoManagedGroupsToCopy" = "Brak grup managera do skopiowania."
+        "Status.AllManagedGroupsCopied" = "Skopiowano wszystkie grupy managera: {0}."
+        "Status.FindingManagerAccounts" = "Szukam kont, gdzie managerem jest {0}\{1}..."
+        "Status.NoManagerAccounts" = "OK - nie znaleziono kont dla managera {0}\{1}."
+        "Status.ManagerAccountsReceived" = "OK - znaleziono kont: {0}; pokazano: {1} ({2})."
+        "Status.ManagerAccountsError" = "Błąd pobierania kont managera: {0}"
+        "Status.ManagerAccountsCleared" = "Lista kont managera wyczyszczona."
+    }
+    en = @{
+        "App.WindowTitle" = "{0} {1} - no RSAT"
+        "Splash.Subtitle" = "PASSWORDS  •  ACCOUNTS  •  GROUPS"
+        "Splash.Author" = "Author: {0}"
+        "Splash.Version" = "VERSION {0}"
+        "Splash.Loading" = "Loading interface..."
+        "Header.Subtitle" = "Password validation and change, account properties, groups, manager accounts, log"
+        "Header.Author" = "Author: {0}"
+        "Busy.Title" = "Processing"
+        "Busy.Message" = "Please wait..."
+        "Busy.Detail" = "The operation is being performed in Active Directory."
+        "Busy.DoNotClose" = "Please do not close the application during the operation."
+        "Error.GuiUnhandled" = "Unhandled interface error: {0}"
+        "Error.AppTitle" = "AD Kombajn error"
+        "Ldap.HintPasswordPolicy" = "The password policy may have rejected the password because of complexity, history, minimum age, or length requirements."
+        "Ldap.HintCredentials" = "The login or old password is probably incorrect."
+        "Ldap.HintConnection" = "Cannot connect to the domain controller. Check the domain/DC, network, port 389/636, and LDAPS."
+        "Ldap.HintSecureChannel" = "AD requires a secure channel. Try LDAPS 636 or make sure signing/sealing works over port 389."
+        "Ldap.Code" = "Code: {0}"
+        "Ldap.Hint" = "Hint: {0}"
+        "Password.Valid" = "The password is valid."
+        "Password.Invalid" = "The password is invalid or the account cannot authenticate."
+        "Password.Changed" = "The password has been changed."
+        "Error.AccountNotFound" = "Account not found: {0}\{1}"
+        "Error.ManagerNotFound" = "Manager account not found: {0}\{1}"
+        "Error.GroupNotFound" = "Group not found: {0}\{1}"
+        "Error.ExportNoAccounts" = "There are no accounts to export."
+        "Error.ExcelColumn" = "Invalid Excel column number: {0}"
+        "Value.Never" = "Never"
+        "Value.UnknownObject" = "Could not retrieve the object by DN"
+        "Progress.FindAccount" = "Searching for the account in AD"
+        "Progress.ReadAccount" = "Reading account attributes"
+        "Progress.ReadMemberOf" = "Retrieving memberOf groups"
+        "Progress.CheckPrimaryGroup" = "Checking the primary group"
+        "Progress.OrganizeResult" = "Organizing results"
+        "Progress.DeduplicateGroups" = "Removing duplicates and sorting the group list..."
+        "Progress.ReadMemberList" = "Reading the member list"
+        "Progress.Range" = "Range {0} - {1}"
+        "Progress.FindGroup" = "Searching for the group in AD"
+        "Progress.GetMemberList" = "Retrieving the member list"
+        "Progress.GetMemberObjects" = "Retrieving member objects"
+        "Progress.SortGroupMembers" = "Sorting the group member list..."
+        "Progress.FindManager" = "Searching for the manager account"
+        "Progress.FindManagedGroups" = "Searching for managed groups"
+        "Progress.OrganizeManagedGroups" = "Organizing managed groups"
+        "Context.Title" = "Working context"
+        "Context.Domain" = "Domain / DC:"
+        "Context.AccountLogin" = "Account login:"
+        "Context.Mode" = "Default: LDAP 389 + signing/sealing, no RSAT."
+        "Tab.ValidatePassword" = "Validate password"
+        "Tab.ChangePassword" = "Change password"
+        "Tab.ManagerAccounts" = "Manager accounts"
+        "Tab.AccountProperties" = "Account properties"
+        "Tab.AccountGroups" = "Account groups"
+        "Tab.GroupMembers" = "Group members"
+        "Tab.ManagedGroups" = "Managed groups"
+        "Tab.Log" = "Log"
+        "Validation.Title" = "Password validation"
+        "Validation.Password" = "Password:"
+        "Validation.ShowPassword" = "Show password"
+        "Validation.Check" = "Validate"
+        "Validation.Hint" = "Validation uses PrincipalContext.ValidateCredentials(), without RSAT or the ActiveDirectory module."
+        "Change.Title" = "Change password: old → new"
+        "Change.OldPassword" = "Old password:"
+        "Change.NewPassword" = "New password:"
+        "Change.RepeatPassword" = "Repeat:"
+        "Change.ShowPasswords" = "Show passwords"
+        "Change.Button" = "Change password"
+        "Change.Hint" = "Password change without UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE old + ADD new."
+        "Common.Clear" = "Clear"
+        "Common.CopySelected" = "Copy selected"
+        "Common.CopyAll" = "Copy all"
+        "Common.Log" = "Log"
+        "Common.ClearLog" = "Clear log"
+        "Common.CopyLog" = "Copy log"
+        "Log.Events" = "Event log"
+        "AccountProperties.Get" = "Get properties"
+        "AccountProperties.Info" = "Displays LDAP account attributes without RSAT, similar to Get-ADUser -Properties *."
+        "AccountProperties.CountEmpty" = "Properties: -"
+        "AccountProperties.Count" = "Properties: {0}"
+        "AccountGroups.Get" = "Get groups"
+        "AccountGroups.Info" = "Displays account domain groups from memberOf and primaryGroupID without RSAT."
+        "Groups.CountEmpty" = "Groups: -"
+        "Groups.Count" = "Groups: {0}"
+        "GroupMembers.Group" = "Group:"
+        "GroupMembers.Get" = "Get members"
+        "GroupMembers.Info" = "Displays direct members from the domain group's member attribute. Nested groups are shown as group objects and are not expanded recursively."
+        "GroupMembers.CountEmpty" = "Members: -"
+        "GroupMembers.Count" = "Members: {0}"
+        "ManagedGroups.Get" = "Get groups"
+        "ManagedGroups.Info" = "Displays domain groups whose manager attribute points to the account entered in Account login."
+        "ManagerAccounts.Get" = "Get accounts"
+        "ManagerAccounts.ExportCsv" = "Export CSV"
+        "ManagerAccounts.ExportXlsx" = "Export XLSX"
+        "ManagerAccounts.CopyLogins" = "Copy logins"
+        "ManagerAccounts.Show" = "Show:"
+        "ManagerAccounts.Search" = "Search:"
+        "ManagerAccounts.ExportInfo" = "The export includes the currently visible rows: filter + search."
+        "ManagerAccounts.CountEmpty" = "Accounts: -"
+        "ManagerAccounts.Count" = "Accounts: {0}"
+        "ManagerAccounts.CountFiltered" = "Accounts: {0} of {1}"
+        "Filter.All" = "all"
+        "Filter.Active" = "active"
+        "Filter.Inactive" = "inactive"
+        "Column.Attribute" = "Attribute"
+        "Column.Value" = "Value"
+        "Column.Count" = "Count"
+        "Column.Name" = "Name"
+        "Column.GroupLogin" = "Group login"
+        "Column.DisplayName" = "Display name"
+        "Column.Type" = "Type"
+        "Column.Scope" = "Scope"
+        "Column.Source" = "Source"
+        "Column.Description" = "Description"
+        "Column.Login" = "Login"
+        "Column.Enabled" = "Enabled"
+        "Column.PasswordLastSet" = "Password last set"
+        "Export.SheetName" = "Manager accounts"
+        "Export.FileNameBase" = "manager_accounts"
+        "Export.NoDataPart" = "none"
+        "Export.SaveTitle" = "Save manager accounts"
+        "Export.CsvFilter" = "Semicolon-delimited CSV (*.csv)|*.csv|All files (*.*)|*.*"
+        "Export.XlsxFilter" = "Excel Workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*"
+        "Dialog.NoData" = "No data"
+        "Dialog.NoSelection" = "No selection"
+        "Status.Filter" = "Filter: {0}, text: '{1}' - showing {2} of {3} accounts."
+        "Status.GetManagerAccountsFirst" = "Retrieve the manager accounts first."
+        "Status.FilterHasNoAccounts" = "The current filter contains no accounts to export."
+        "Status.ExportCancelled" = "Export cancelled."
+        "Status.Exporting" = "Exporting {0} accounts to {1}..."
+        "Status.ExportReady" = "OK - export ready: {0}"
+        "Status.ExportCompleted" = "Export completed.`r`n`r`nFile:`r`n{0}"
+        "Status.ExportCompletedTitle" = "Export ready"
+        "Status.ExportError" = "Export error: {0}"
+        "Status.ExportFailed" = "The export failed.`r`n`r`n{0}"
+        "Status.ExportErrorTitle" = "Export error"
+        "Status.SelectRow" = "Select at least one row."
+        "Status.LoginsCopied" = "Logins copied to the clipboard: {0}"
+        "Status.ClipboardFailed" = "Could not copy to the clipboard: {0}"
+        "Status.ReadyShort" = "Ready."
+        "Status.Ready" = "Ready. Enter a domain/DC and login."
+        "Status.LogCleared" = "Log cleared."
+        "Status.LogEmpty" = "The log is empty."
+        "Status.LogCopied" = "Log copied to the clipboard."
+        "Status.LogCopyFailed" = "Could not copy the log: {0}"
+        "Status.ValidationPasswordCleared" = "Validation password cleared."
+        "Status.ChangeFieldsCleared" = "Password change fields cleared."
+        "Status.EnterValidationData" = "Enter the domain/DC, login, and password to validate."
+        "Status.ValidatingPassword" = "Validating the password for {0}\{1}..."
+        "Status.PasswordValid" = "OK - the password is valid for {0}\{1}."
+        "Status.PasswordInvalid" = "NOT OK - password validation failed."
+        "Status.EnterDomainLogin" = "Enter the domain/DC and login."
+        "Status.EnterPasswordChangeData" = "Enter the old password, new password, and repeat the new password."
+        "Status.PasswordsDiffer" = "The new passwords do not match."
+        "Status.PasswordUnchanged" = "The new password is the same as the old password."
+        "Status.ConfirmPasswordChange" = "Change the password for {0}\{1}?`r`n`r`nThis operation uses the old and new password and does not perform an administrative reset."
+        "Status.ConfirmPasswordChangeTitle" = "Confirm password change"
+        "Status.PasswordChangeCancelled" = "Password change cancelled."
+        "Status.ChangingPassword" = "Changing the password for {0}\{1}..."
+        "Status.PasswordChanged" = "OK - the password has been changed for {0}\{1}."
+        "Status.PasswordChangeError" = "Password change failed for {0}\{1}."
+        "Status.EnterAccount" = "Enter the domain/DC and account login."
+        "Status.GettingAccountProperties" = "Retrieving properties for {0}\{1}..."
+        "Status.AccountPropertiesReceived" = "OK - properties retrieved: {0}."
+        "Status.AccountPropertiesError" = "Error retrieving account properties: {0}"
+        "Status.AccountPropertiesCleared" = "Account properties cleared."
+        "Status.SelectProperties" = "Select properties to copy."
+        "Status.PropertiesCopied" = "Selected properties copied: {0}."
+        "Status.PropertiesCopyFailed" = "Could not copy properties: {0}"
+        "Status.NoProperties" = "There are no account properties to copy."
+        "Status.AllPropertiesCopied" = "All properties copied: {0}."
+        "Status.GettingAccountGroups" = "Retrieving groups for {0}\{1}..."
+        "Status.NoAccountGroups" = "OK - no groups found for {0}\{1}."
+        "Status.AccountGroupsReceived" = "OK - account groups retrieved: {0}."
+        "Status.AccountGroupsError" = "Error retrieving account groups: {0}"
+        "Status.AccountGroupsCleared" = "Account group list cleared."
+        "Status.SelectGroups" = "Select groups to copy."
+        "Status.GroupsCopied" = "Selected groups copied: {0}."
+        "Status.GroupsCopyFailed" = "Could not copy groups: {0}"
+        "Status.NoAccountGroupsToCopy" = "There are no account groups to copy."
+        "Status.AllGroupsCopied" = "All groups copied: {0}."
+        "Status.EnterDomain" = "Enter the domain/DC."
+        "Status.EnterGroup" = "Enter the domain group name."
+        "Status.GettingGroupMembers" = "Retrieving members of {0}\{1}..."
+        "Status.NoGroupMembers" = "OK - {0}\{1} has no direct members or they could not be retrieved."
+        "Status.GroupMembersReceived" = "OK - group members retrieved: {0}."
+        "Status.GroupMembersError" = "Error retrieving group members: {0}"
+        "Status.GroupMembersCleared" = "Group member list cleared."
+        "Status.SelectGroupMembers" = "Select group members to copy."
+        "Status.GroupMembersCopied" = "Selected group members copied: {0}."
+        "Status.GroupMembersCopyFailed" = "Could not copy group members: {0}"
+        "Status.NoGroupMembersToCopy" = "There are no group members to copy."
+        "Status.AllGroupMembersCopied" = "All group members copied: {0}."
+        "Status.EnterManager" = "Enter the domain/DC and manager login."
+        "Status.GettingManagedGroups" = "Retrieving groups whose managedBy points to {0}\{1}..."
+        "Status.NoManagedGroups" = "OK - no managedBy groups found for {0}\{1}."
+        "Status.ManagedGroupsReceived" = "OK - managed groups found: {0}."
+        "Status.ManagedGroupsError" = "Error retrieving managed groups: {0}"
+        "Status.ManagedGroupsCleared" = "Managed group list cleared."
+        "Status.SelectManagedGroups" = "Select managed groups to copy."
+        "Status.ManagedGroupsCopied" = "Selected managed groups copied: {0}."
+        "Status.ManagedGroupsCopyFailed" = "Could not copy managed groups: {0}"
+        "Status.NoManagedGroupsToCopy" = "There are no managed groups to copy."
+        "Status.AllManagedGroupsCopied" = "All managed groups copied: {0}."
+        "Status.FindingManagerAccounts" = "Searching for accounts managed by {0}\{1}..."
+        "Status.NoManagerAccounts" = "OK - no accounts found for manager {0}\{1}."
+        "Status.ManagerAccountsReceived" = "OK - accounts found: {0}; shown: {1} ({2})."
+        "Status.ManagerAccountsError" = "Error retrieving manager accounts: {0}"
+        "Status.ManagerAccountsCleared" = "Manager account list cleared."
+    }
+}
+
+function Get-UiText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Key,
+        [object[]]$Values = @()
+    )
+
+    $languageCode = $script:UiLanguage
+    if ($languageCode -notin @("pl", "en")) { $languageCode = "pl" }
+
+    $text = $Key
+    if ($script:Translations.ContainsKey($languageCode) -and $script:Translations[$languageCode].ContainsKey($Key)) {
+        $text = [string]$script:Translations[$languageCode][$Key]
+    }
+    elseif ($script:Translations["pl"].ContainsKey($Key)) {
+        $text = [string]$script:Translations["pl"][$Key]
+    }
+
+    if ($null -ne $Values -and $Values.Count -gt 0) {
+        return [string]::Format([System.Globalization.CultureInfo]::CurrentCulture, $text, [object[]]$Values)
+    }
+    return $text
+}
 
 $script:Theme = [PSCustomObject]@{
     Back        = [System.Drawing.Color]::FromArgb(245, 248, 252)
@@ -213,14 +669,13 @@ function Set-DoubleBuffered {
 
 function Get-AppWindowIcon {
     <#
-        The WinForms window icon is not always taken automatically from the
-        ps2exe -IconFile parameter. This parameter sets the EXE file icon, but the form itself
-        must also have $form.Icon set.
+        A WinForms window does not always inherit the icon set by ps2exe -IconFile.
+        That parameter sets the EXE file icon, while the form still requires
+        an explicit $form.Icon value.
 
         Lookup order:
-        1. lupa.ico next to the script/EXE,
-        2. *.ico next to the script/EXE,
-        3. icon embedded in the currently running EXE through ps2exe -IconFile.
+        1. known kombajn*.ico files next to the script/EXE,
+        2. the icon embedded in the running EXE by ps2exe -IconFile.
     #>
 
     $candidates = New-Object System.Collections.ArrayList
@@ -288,6 +743,51 @@ function Apply-AppWindowIcon {
         }
     }
     catch { }
+}
+
+function Select-UiLanguage {
+    if ($script:UiLanguage -in @("pl", "en")) { return $true }
+
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = "AD Kombajn - Language / Język"
+    $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+    $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
+    $dialog.MaximizeBox = $false
+    $dialog.MinimizeBox = $false
+    $dialog.ShowInTaskbar = $true
+    $dialog.ClientSize = New-Size 430 172
+    $dialog.BackColor = $script:Theme.Back
+    Apply-AppWindowIcon $dialog
+
+    $title = New-Object System.Windows.Forms.Label
+    $title.Text = "Choose interface language / Wybierz język interfejsu"
+    $title.Location = New-Point 20 20
+    $title.Size = New-Size 390 28
+    $title.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+    $title.Font = New-UiFont 10.5 ([System.Drawing.FontStyle]::Bold)
+    $title.ForeColor = $script:Theme.Text
+
+    $btnPolish = New-FlatButton "Polski" 52 76 145 44
+    $btnEnglish = New-FlatButton "English" 232 76 145 44
+
+    $btnPolish.Add_Click({
+        $script:UiLanguage = "pl"
+        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    })
+    $btnEnglish.Add_Click({
+        $script:UiLanguage = "en"
+        $dialog.DialogResult = [System.Windows.Forms.DialogResult]::OK
+    })
+
+    $dialog.Controls.AddRange(@($title, $btnPolish, $btnEnglish))
+    try {
+        [void]$dialog.ShowDialog()
+    }
+    finally {
+        $dialog.Dispose()
+    }
+
+    return ($script:UiLanguage -in @("pl", "en"))
 }
 
 function New-FlatButton {
@@ -464,9 +964,9 @@ function Show-ErrorBox {
 
 function Show-BusyProgressWindow {
     param(
-        [string]$Title = "Przetwarzanie",
-        [string]$Message = "Proszę czekać...",
-        [string]$Detail = "Operacja jest wykonywana w Active Directory.",
+        [string]$Title = (Get-UiText "Busy.Title"),
+        [string]$Message = (Get-UiText "Busy.Message"),
+        [string]$Detail = (Get-UiText "Busy.Detail"),
         [int]$Width = 470
     )
 
@@ -519,7 +1019,7 @@ function Show-BusyProgressWindow {
     $lblWait.AutoSize = $false
     $lblWait.Location = New-Object System.Drawing.Point(18, 98)
     $lblWait.Size = New-Object System.Drawing.Size(($Width - 60), 18)
-    $lblWait.Text = "Proszę nie zamykać aplikacji w trakcie operacji."
+    $lblWait.Text = Get-UiText "Busy.DoNotClose"
     $lblWait.Font = New-UiFont 8.0 ([System.Drawing.FontStyle]::Italic)
     $lblWait.ForeColor = $script:Theme.Muted
 
@@ -638,8 +1138,9 @@ function Show-WinSplash {
     param(
         [int]$Milliseconds = 1600,
         [string]$Title = "AD KOMBAJN",
-        [string]$Subtitle = "HASŁA  •  KONTA  •  RAPORTY",
-        [string]$Author = "Autor: Krzysztof Lipa-Izdebski"
+        [string]$Subtitle = (Get-UiText "Splash.Subtitle"),
+        [string]$Version = $script:AppVersion,
+        [string]$Author = (Get-UiText "Splash.Author" @($script:AppAuthor))
     )
 
     try {
@@ -692,7 +1193,7 @@ function Show-WinSplash {
             [void]$disposables.Add($borderPen)
             $g.DrawPath($borderPen, $borderPath)
 
-            # Icon: magnifying glass + database, drawn without external image files.
+            # Icon: magnifying glass + database, drawn without external files.
             $shadowBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(75, 0, 0, 0))
             [void]$disposables.Add($shadowBrush)
             $g.FillEllipse($shadowBrush, 57, 205, 160, 26)
@@ -742,6 +1243,8 @@ function Show-WinSplash {
             [void]$disposables.Add($titleFont)
             $subtitleFont = New-Object System.Drawing.Font("Segoe UI Semibold", 10, [System.Drawing.FontStyle]::Regular)
             [void]$disposables.Add($subtitleFont)
+            $versionFont = New-Object System.Drawing.Font("Segoe UI Semibold", 9, [System.Drawing.FontStyle]::Regular)
+            [void]$disposables.Add($versionFont)
             $smallFont = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
             [void]$disposables.Add($smallFont)
             $authorFont = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Italic)
@@ -768,7 +1271,8 @@ function Show-WinSplash {
             $g.DrawString($Title, $titleFont, $shadow, (New-Object System.Drawing.RectangleF(226, 99, 325, 50)), $sfNear)
             $g.DrawString($Title, $titleFont, $white,  (New-Object System.Drawing.RectangleF(223, 96, 325, 50)), $sfNear)
             $g.DrawString($Subtitle, $subtitleFont, $soft, (New-Object System.Drawing.RectangleF(229, 151, 320, 24)), $sfNear)
-            $g.DrawString("Ładuję interfejs...", $smallFont, $soft, (New-Object System.Drawing.RectangleF(56, 254, 468, 20)), $sfCenter)
+            $g.DrawString((Get-UiText "Splash.Version" @($Version)), $versionFont, $muted, (New-Object System.Drawing.RectangleF(229, 177, 320, 20)), $sfNear)
+            $g.DrawString((Get-UiText "Splash.Loading"), $smallFont, $soft, (New-Object System.Drawing.RectangleF(56, 254, 468, 20)), $sfCenter)
             $g.DrawString($Author, $authorFont, $muted, (New-Object System.Drawing.RectangleF(56, 301, 468, 18)), $sfCenter)
         }
         finally {
@@ -954,7 +1458,7 @@ function New-LdapConnectionCurrentUser {
         $connection.SessionOptions.SecureSocketLayer = $true
     }
     else {
-        # Encrypted SASL channel over 389. This allows unicodePwd changes without LDAPS.
+        # Encrypted SASL channel over port 389, so unicodePwd changes do not require LDAPS.
         $connection.SessionOptions.Signing = $true
         $connection.SessionOptions.Sealing = $true
     }
@@ -1004,10 +1508,10 @@ function New-LdapConnectionWithCredentials {
 function Convert-ToUnicodePwdBytes {
     param([Parameter(Mandatory = $true)][string]$Password)
 
-    # AD expects the password in quotation marks and encoded as UTF-16LE.
-    # The comma before $bytes is important: without it, PowerShell may
-    # expand byte[] into System.Object[], and DirectoryAttributeModification.Add()
-    # may then choose the wrong overload and end with a System.Uri/System.Object[] error.
+    # AD expects the password in quotation marks and UTF-16LE.
+    # The comma before $bytes is important: without it PowerShell may expand byte[]
+    # to System.Object[], causing DirectoryAttributeModification.Add() to choose
+    # an incorrect overload and fail with a System.Uri/System.Object[] error.
     [byte[]]$bytes = [System.Text.Encoding]::Unicode.GetBytes('"' + $Password + '"')
     return ,$bytes
 }
@@ -1032,23 +1536,25 @@ function Get-FriendlyLdapError {
     $lower = $message.ToLowerInvariant()
 
     if ($lower -match "constraint|unwilling|0000052d|52d") {
-        $hint = "Prawdopodobnie polityka haseł: złożoność, historia haseł, minimalny wiek hasła albo zbyt krótkie hasło."
+        $hint = Get-UiText "Ldap.HintPasswordPolicy"
     }
     elseif ($lower -match "invalid credentials|52e|775|data 52e") {
-        $hint = "Prawdopodobnie błędny login albo stare hasło."
+        $hint = Get-UiText "Ldap.HintCredentials"
     }
     elseif ($lower -match "server is unavailable|cannot contact|unavailable") {
-        $hint = "Nie mogę połączyć się z kontrolerem domeny. Sprawdź domenę/DC, sieć, port 389/636 i LDAPS."
+        $hint = Get-UiText "Ldap.HintConnection"
     }
     elseif ($lower -match "confidentiality|required|stronger") {
-        $hint = "AD wymaga bezpiecznego kanału. Spróbuj LDAPS 636 albo upewnij się, że działa signing/sealing po 389."
+        $hint = Get-UiText "Ldap.HintSecureChannel"
     }
 
     if (-not (Is-Blank $code)) {
-        $message = "$message`r`nKod: $code"
+        $codeText = Get-UiText "Ldap.Code" @($code)
+        $message = "$message`r`n$codeText"
     }
     if (-not (Is-Blank $hint)) {
-        $message = "$message`r`n`r`nPodpowiedź: $hint"
+        $hintText = Get-UiText "Ldap.Hint" @($hint)
+        $message = "$message`r`n`r`n$hintText"
     }
 
     return $message
@@ -1118,11 +1624,11 @@ function Test-AdPasswordNoRsat {
         [int]$Port = 389
     )
 
-    # Password validation intentionally follows the same approach as the simple validPassword.ps1:
+    # Password validation intentionally follows the simple validPassword.ps1 approach:
     # PrincipalContext.ValidateCredentials().
-    # Password changes still use LDAP unicodePwd, without UserPrincipal.ChangePassword().
-    # The UseLdaps/Port parameters remain in the signature for compatibility with the rest of the GUI,
-    # but ValidateCredentials selects the connection mechanism for the domain/controller on its own.
+    # Password changes still use LDAP unicodePwd without UserPrincipal.ChangePassword().
+    # UseLdaps/Port remain in the signature for GUI compatibility, while
+    # ValidateCredentials selects the domain/controller connection mechanism itself.
 
     $context = $null
 
@@ -1131,8 +1637,8 @@ function Test-AdPasswordNoRsat {
 
         $loginToValidate = $Login.Trim()
 
-        # If someone enters DOMAIN\login, remove the domain prefix,
-        # because ValidateCredentials in a domain context usually expects the plain login or UPN.
+        # Strip the domain prefix from DOMAIN\login because ValidateCredentials
+        # in a domain context normally expects a login name or UPN.
         if ($loginToValidate -match "^[^\\]+\\(.+)$") {
             $loginToValidate = $Matches[1]
         }
@@ -1145,12 +1651,12 @@ function Test-AdPasswordNoRsat {
         $ok = $context.ValidateCredentials($loginToValidate, $Password)
 
         if ($ok) {
-            return [PSCustomObject]@{ Success = $true; Message = "Hasło jest poprawne." }
+            return [PSCustomObject]@{ Success = $true; Message = (Get-UiText "Password.Valid") }
         }
 
         return [PSCustomObject]@{
             Success = $false
-            Message = "Hasło jest niepoprawne albo konto nie może się uwierzytelnić."
+            Message = Get-UiText "Password.Invalid"
         }
     }
     catch {
@@ -1177,7 +1683,7 @@ function Change-AdAccountPasswordNoRsat {
     try {
         $target = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $Login
         if ($null -eq $target -or (Is-Blank $target.DistinguishedName)) {
-            throw "Nie znaleziono konta: $DomainOrDc\$Login"
+            throw (Get-UiText "Error.AccountNotFound" @($DomainOrDc, $Login))
         }
 
         $connection = New-LdapConnectionCurrentUser -Server $DomainOrDc -UseLdaps $UseLdaps -Port $Port
@@ -1204,7 +1710,7 @@ function Change-AdAccountPasswordNoRsat {
 
         return [PSCustomObject]@{
             Success = $true
-            Message = "Hasło zostało zmienione."
+            Message = Get-UiText "Password.Changed"
             Result  = [string]$response.ResultCode
             Target  = $target
         }
@@ -1323,7 +1829,7 @@ function Convert-ADAccountExpiresToText {
     try {
         if ($null -eq $Value -or (Is-Blank $Value)) { return "" }
         $raw = [Int64]$Value
-        if ($raw -eq 0 -or $raw -eq 9223372036854775807) { return "Never" }
+        if ($raw -eq 0 -or $raw -eq 9223372036854775807) { return (Get-UiText "Value.Never") }
         return (Convert-ADFileTimeToReadableText -Value $raw)
     }
     catch { return [string]$Value }
@@ -1349,9 +1855,9 @@ function Get-LockedOutTextFromAdValues {
     }
     catch { }
 
-    # Fallback only when the domain controller did not return msDS-User-Account-Control-Computed.
-    # lockoutTime != 0 does not always mean a current lockout after the automatic unlock time has elapsed,
-    # but it is better than no information.
+    # Fallback used only when the domain controller does not return
+    # msDS-User-Account-Control-Computed. A non-zero lockoutTime does not always
+    # indicate a current lockout after automatic unlock, but is better than no data.
     try {
         if ($null -ne $LockoutTime -and -not (Is-Blank $LockoutTime)) {
             return (Convert-BooleanText -Value ([Int64]$LockoutTime -gt 0))
@@ -1433,7 +1939,10 @@ function Convert-AdPropertySingleValueToText {
 
         if ($Name -ieq "accountExpires") {
             $raw = [Int64]$Value
-            if ($raw -eq 0 -or $raw -eq 9223372036854775807) { return "Nigdy ($raw)" }
+            if ($raw -eq 0 -or $raw -eq 9223372036854775807) {
+                $neverText = Get-UiText "Value.Never"
+                return "$neverText ($raw)"
+            }
             $txt = Convert-ADFileTimeToText -Value $Value
             if (-not (Is-Blank $txt)) { return $txt }
             return [string]$Value
@@ -1518,8 +2027,8 @@ function Get-AdUserAllPropertiesNoRsat {
             $searcher.Filter = "(&(objectCategory=person)(objectClass=user)(sAMAccountName=$escaped))"
         }
 
-        # "*" retrieves regular LDAP attributes; below, additional attributes are explicitly requested
-        # for values similar to Get-ADUser -Properties *.
+        # "*" retrieves regular LDAP attributes. The attributes below are added
+        # explicitly to provide values similar to Get-ADUser -Properties *.
         foreach ($p in @(
             "*",
             "pwdLastSet",
@@ -1537,7 +2046,7 @@ function Get-AdUserAllPropertiesNoRsat {
 
         $result = $searcher.FindOne()
         if ($null -eq $result) {
-            throw "Nie znaleziono konta: $DomainOrDc\$Login"
+            throw (Get-UiText "Error.AccountNotFound" @($DomainOrDc, $Login))
         }
 
         $props = $result.Properties
@@ -1556,7 +2065,7 @@ function Get-AdUserAllPropertiesNoRsat {
             }
         }
 
-        # Calculated/helper values - equivalents of fields conveniently shown by Get-ADUser.
+        # Computed/helper values corresponding to fields conveniently exposed by Get-ADUser.
         $computedRows = @()
 
         $uac = Get-SearchPropertyValue -Properties $props -Name "userAccountControl"
@@ -1770,10 +2279,10 @@ function Get-AdAccountGroupsNoRsat {
         $ProgressWindow = $null
     )
 
-    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Szukam konta w AD" -Detail "$DomainOrDc\$Login" -Marquee $true
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindAccount") -Detail "$DomainOrDc\$Login" -Marquee $true
     $target = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $Login
     if ($null -eq $target -or (Is-Blank $target.DistinguishedName)) {
-        throw "Nie znaleziono konta: $DomainOrDc\$Login"
+        throw (Get-UiText "Error.AccountNotFound" @($DomainOrDc, $Login))
     }
 
     $entry = $null
@@ -1781,7 +2290,7 @@ function Get-AdAccountGroupsNoRsat {
 
     try {
         $entry = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$DomainOrDc/$($target.DistinguishedName)")
-        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Odczytuję atrybuty konta" -Detail $target.DistinguishedName -Marquee $true
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadAccount") -Detail $target.DistinguishedName -Marquee $true
         try { $entry.RefreshCache(@("memberOf", "primaryGroupID", "objectSid")) } catch { }
 
         $memberOf = @()
@@ -1796,18 +2305,18 @@ function Get-AdAccountGroupsNoRsat {
         $groupIndex = 0
         $groupTotal = $memberOfUnique.Count
         if ($groupTotal -gt 0) {
-            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Pobieram grupy memberOf" -Detail "0 / $groupTotal" -Value 0 -Maximum $groupTotal
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadMemberOf") -Detail "0 / $groupTotal" -Value 0 -Maximum $groupTotal
         }
 
         foreach ($groupDn in $memberOfUnique) {
             $groupIndex++
-            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Pobieram grupy memberOf" -Detail "$groupIndex / $groupTotal" -Value $groupIndex -Maximum $groupTotal
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadMemberOf") -Detail "$groupIndex / $groupTotal" -Value $groupIndex -Maximum $groupTotal
             $groupRow = Find-AdGroupByDistinguishedNameNoRsat -DomainOrDc $DomainOrDc -DistinguishedName $groupDn -Source "memberOf"
             if ($null -ne $groupRow) { $rows += $groupRow }
         }
 
-        # primaryGroupID usually means, for example, Domain Users and is not present in the memberOf attribute,
-        # so it is added separately to make the list more complete than memberOf alone.
+        # primaryGroupID usually represents a group such as Domain Users and is absent
+        # from memberOf, so it is added separately to provide a more complete list.
         try {
             $primaryGroupId = Get-DirectoryEntryPropertyValue -Entry $entry -Name "primaryGroupID"
             $objectSid = Get-DirectoryEntryPropertyValue -Entry $entry -Name "objectSid"
@@ -1819,7 +2328,7 @@ function Get-AdAccountGroupsNoRsat {
                 if ($lastDash -gt 0) {
                     $domainSid = $userSid.Substring(0, $lastDash)
                     $primaryGroupSid = "$domainSid-$([int]$primaryGroupId)"
-                    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Sprawdzam grupę podstawową" -Detail $primaryGroupSid -Marquee $true
+                    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.CheckPrimaryGroup") -Detail $primaryGroupSid -Marquee $true
                     $primaryRow = Find-AdGroupBySidNoRsat -DomainOrDc $DomainOrDc -Sid $primaryGroupSid -Source "primaryGroupID"
                     if ($null -ne $primaryRow) { $rows += $primaryRow }
                 }
@@ -1842,8 +2351,8 @@ function Get-AdAccountGroupsNoRsat {
             }
         }
 
-        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Porządkuję wynik" -Detail "Usuwam duplikaty i sortuję listę grup..." -Marquee $true
-        return @($deduped | Sort-Object Name, SamAccountName)
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Detail (Get-UiText "Progress.DeduplicateGroups") -Marquee $true
+        return @($deduped | Sort-Object -Property @("Name", "SamAccountName"))
     }
     finally {
         if ($null -ne $entry) { $entry.Dispose() }
@@ -1969,7 +2478,7 @@ function Get-AdGroupMemberDistinguishedNamesNoRsat {
             $rangeProp = "member;range=$rangeStart-$rangeEnd"
             [void]$searcher.PropertiesToLoad.Add($rangeProp)
 
-            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Czytam listę member" -Detail "Zakres $rangeStart - $rangeEnd" -Marquee $true
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadMemberList") -Detail (Get-UiText "Progress.Range" @($rangeStart, $rangeEnd)) -Marquee $true
             $result = $searcher.FindOne()
             if ($null -eq $result) { break }
 
@@ -1994,7 +2503,7 @@ function Get-AdGroupMemberDistinguishedNamesNoRsat {
                 }
             }
             else {
-                # Fallback for small groups / other domain controllers.
+                # Fallback for small groups or other domain controller behavior.
                 try { $searcher.PropertiesToLoad.Clear() } catch { }
                 [void]$searcher.PropertiesToLoad.Add("member")
                 $result = $searcher.FindOne()
@@ -2067,7 +2576,7 @@ function Find-AdObjectByDistinguishedNameNoRsat {
                 ObjectType        = "nieznany"
                 Enabled           = ""
                 UserPrincipalName = ""
-                Description       = "Nie udało się pobrać obiektu po DN"
+                Description       = Get-UiText "Value.UnknownObject"
                 DistinguishedName = [string]$DistinguishedName
             }
         }
@@ -2087,32 +2596,32 @@ function Get-AdDomainGroupMembersNoRsat {
         $ProgressWindow = $null
     )
 
-    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Szukam grupy w AD" -Detail "$DomainOrDc\$GroupIdentity" -Marquee $true
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindGroup") -Detail "$DomainOrDc\$GroupIdentity" -Marquee $true
     $group = Find-AdGroupBasicNoRsat -DomainOrDc $DomainOrDc -GroupIdentity $GroupIdentity
     if ($null -eq $group -or (Is-Blank $group.DistinguishedName)) {
-        throw "Nie znaleziono grupy: $DomainOrDc\$GroupIdentity"
+        throw (Get-UiText "Error.GroupNotFound" @($DomainOrDc, $GroupIdentity))
     }
 
-    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Pobieram listę członków" -Detail $group.DistinguishedName -Marquee $true
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.GetMemberList") -Detail $group.DistinguishedName -Marquee $true
     $memberDns = @(Get-AdGroupMemberDistinguishedNamesNoRsat -DomainOrDc $DomainOrDc -GroupDistinguishedName $group.DistinguishedName -ProgressWindow $ProgressWindow)
 
     $rows = @()
     $total = $memberDns.Count
 
     if ($total -gt 0) {
-        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Pobieram obiekty członków" -Detail "0 / $total" -Value 0 -Maximum $total
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.GetMemberObjects") -Detail "0 / $total" -Value 0 -Maximum $total
     }
 
     $index = 0
     foreach ($dn in $memberDns) {
         $index++
-        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Pobieram obiekty członków" -Detail "$index / $total" -Value $index -Maximum $total
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.GetMemberObjects") -Detail "$index / $total" -Value $index -Maximum $total
         $row = Find-AdObjectByDistinguishedNameNoRsat -DomainOrDc $DomainOrDc -DistinguishedName $dn
         if ($null -ne $row) { $rows += $row }
     }
 
-    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Porządkuję wynik" -Detail "Sortuję listę członków grupy..." -Marquee $true
-    return @($rows | Sort-Object ObjectType, SamAccountName, Name, DistinguishedName)
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Detail (Get-UiText "Progress.SortGroupMembers") -Marquee $true
+    return @($rows | Sort-Object -Property @("ObjectType", "SamAccountName", "Name", "DistinguishedName"))
 }
 
 function Get-ManagedAccounts {
@@ -2123,7 +2632,7 @@ function Get-ManagedAccounts {
 
     $manager = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $ManagerLogin
     if ($null -eq $manager -or (Is-Blank $manager.DistinguishedName)) {
-        throw "Nie znaleziono konta managera: $DomainOrDc\$ManagerLogin"
+        throw (Get-UiText "Error.ManagerNotFound" @($DomainOrDc, $ManagerLogin))
     }
 
     $escapedManagerDn = Escape-LdapFilterValue -Value $manager.DistinguishedName
@@ -2181,10 +2690,10 @@ function Get-ManagedGroups {
         $ProgressWindow = $null
     )
 
-    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Szukam konta managera" -Detail "$DomainOrDc\$ManagerLogin" -Marquee $true
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManager") -Detail "$DomainOrDc\$ManagerLogin" -Marquee $true
     $manager = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $ManagerLogin
     if ($null -eq $manager -or (Is-Blank $manager.DistinguishedName)) {
-        throw "Nie znaleziono konta managera: $DomainOrDc\$ManagerLogin"
+        throw (Get-UiText "Error.ManagerNotFound" @($DomainOrDc, $ManagerLogin))
     }
 
     $escapedManagerDn = Escape-LdapFilterValue -Value $manager.DistinguishedName
@@ -2195,7 +2704,7 @@ function Get-ManagedGroups {
     $results = $null
 
     try {
-        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Szukam grup managera" -Detail $manager.DistinguishedName -Marquee $true
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManagedGroups") -Detail $manager.DistinguishedName -Marquee $true
         $root = New-Object System.DirectoryServices.DirectoryEntry($ldapBasePath)
         $searcher = New-Object System.DirectoryServices.DirectorySearcher($root)
         $searcher.PageSize = 1000
@@ -2212,16 +2721,16 @@ function Get-ManagedGroups {
         $index = 0
 
         if ($total -gt 0) {
-            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Porządkuję grupy managera" -Detail "0 / $total" -Value 0 -Maximum $total
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedGroups") -Detail "0 / $total" -Value 0 -Maximum $total
         }
 
         foreach ($result in $results) {
             $index++
-            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message "Porządkuję grupy managera" -Detail "$index / $total" -Value $index -Maximum $total
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedGroups") -Detail "$index / $total" -Value $index -Maximum $total
             $rows += (New-AccountGroupRowFromSearchProperties -Properties $result.Properties -Source "managedBy")
         }
 
-        return @($rows | Sort-Object Name, SamAccountName, DistinguishedName)
+        return @($rows | Sort-Object -Property @("Name", "SamAccountName", "DistinguishedName"))
     }
     finally {
         if ($null -ne $results) { $results.Dispose() }
@@ -2243,15 +2752,15 @@ function Convert-ManagedRowsToExportRows {
 
     foreach ($row in $Rows) {
         if ($null -eq $row) { continue }
-        $exportRows += [PSCustomObject]@{
-            "Login"           = [string]$row.SamAccountName
-            "Nazwa"           = [string]$row.Name
-            "Display name"    = [string]$row.DisplayName
-            "Aktywne"         = [string]$row.Enabled
-            "UPN"             = [string]$row.UserPrincipalName
-            "Opis"            = [string]$row.Description
-            "Hasło zmienione" = [string]$row.PasswordLastSet
-        }
+        $exportRow = [ordered]@{}
+        $exportRow[(Get-UiText "Column.Login")] = [string]$row.SamAccountName
+        $exportRow[(Get-UiText "Column.Name")] = [string]$row.Name
+        $exportRow[(Get-UiText "Column.DisplayName")] = [string]$row.DisplayName
+        $exportRow[(Get-UiText "Column.Enabled")] = [string]$row.Enabled
+        $exportRow["UPN"] = [string]$row.UserPrincipalName
+        $exportRow[(Get-UiText "Column.Description")] = [string]$row.Description
+        $exportRow[(Get-UiText "Column.PasswordLastSet")] = [string]$row.PasswordLastSet
+        $exportRows += [PSCustomObject]$exportRow
     }
     return $exportRows
 }
@@ -2259,11 +2768,11 @@ function Convert-ManagedRowsToExportRows {
 function Get-SafeFileNamePart {
     param([string]$Text)
 
-    if (Is-Blank $Text) { return "brak" }
+    if (Is-Blank $Text) { return (Get-UiText "Export.NoDataPart") }
     $safe = [regex]::Replace($Text.Trim(), '[\\/:*?"<>|]+', '_')
     $safe = [regex]::Replace($safe, '\s+', '_')
     $safe = $safe.Trim('_')
-    if (Is-Blank $safe) { return "brak" }
+    if (Is-Blank $safe) { return (Get-UiText "Export.NoDataPart") }
     return $safe
 }
 
@@ -2271,14 +2780,14 @@ function Export-ManagedAccountsToCsv {
     param([object[]]$Rows, [string]$Path)
 
     $exportRows = @(Convert-ManagedRowsToExportRows -Rows $Rows)
-    if ($exportRows.Count -eq 0) { throw "Brak kont do eksportu." }
+    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoAccounts") }
     $exportRows | Export-Csv -Path $Path -NoTypeInformation -Delimiter ";" -Encoding UTF8 -Force
 }
 
 function Convert-ToExcelColumnName {
     param([int]$ColumnNumber)
 
-    if ($ColumnNumber -lt 1) { throw "Nieprawidłowy numer kolumny Excela: $ColumnNumber" }
+    if ($ColumnNumber -lt 1) { throw (Get-UiText "Error.ExcelColumn" @($ColumnNumber)) }
     $name = ""
     $n = $ColumnNumber
     while ($n -gt 0) {
@@ -2326,9 +2835,17 @@ function Export-ManagedAccountsToXlsx {
     param([object[]]$Rows, [string]$Path)
 
     $exportRows = @(Convert-ManagedRowsToExportRows -Rows $Rows)
-    if ($exportRows.Count -eq 0) { throw "Brak kont do eksportu." }
+    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoAccounts") }
 
-    $headers = @("Login", "Nazwa", "Display name", "Aktywne", "UPN", "Opis", "Hasło zmienione")
+    $headers = @(
+        (Get-UiText "Column.Login"),
+        (Get-UiText "Column.Name"),
+        (Get-UiText "Column.DisplayName"),
+        (Get-UiText "Column.Enabled"),
+        "UPN",
+        (Get-UiText "Column.Description"),
+        (Get-UiText "Column.PasswordLastSet")
+    )
     $widths = @(18, 24, 28, 12, 34, 42, 22)
     $lastColumnName = Convert-ToExcelColumnName -ColumnNumber $headers.Count
     $lastRow = $exportRows.Count + 1
@@ -2342,6 +2859,7 @@ function Export-ManagedAccountsToXlsx {
         }
 
         $nowUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+        $sheetName = Convert-ToXmlText -Value (Get-UiText "Export.SheetName")
 
         Write-Utf8NoBomFile -Path (Join-Path $tmp "[Content_Types].xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -2385,7 +2903,7 @@ function Export-ManagedAccountsToXlsx {
         Write-Utf8NoBomFile -Path (Join-Path $tmp "xl\workbook.xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets><sheet name="Konta managera" sheetId="1" r:id="rId1"/></sheets>
+  <sheets><sheet name="$sheetName" sheetId="1" r:id="rId1"/></sheets>
 </workbook>
 "@
 
@@ -2459,7 +2977,7 @@ $($colsXml.ToString())$($sheetData.ToString())  <autoFilter ref="$sheetRef"/>
 }
 
 # ==================================================
-# Manager table data
+# Manager account table data
 # ==================================================
 
 function Get-ManagedAccountsFilterMode {
@@ -2471,9 +2989,9 @@ function Get-ManagedAccountsFilterMode {
 function Get-ManagedAccountsFilterText {
     $mode = Get-ManagedAccountsFilterMode
     switch ($mode) {
-        "Active"   { return "aktywne" }
-        "Inactive" { return "nieaktywne" }
-        default    { return "wszystkie" }
+        "Active"   { return (Get-UiText "Filter.Active") }
+        "Inactive" { return (Get-UiText "Filter.Inactive") }
+        default    { return (Get-UiText "Filter.All") }
     }
 }
 
@@ -2554,10 +3072,10 @@ function Refresh-ManagedAccountsGrid {
     Set-ManagedAccountsGrid -Rows $filteredRows
 
     if ((Get-ManagedAccountsFilterMode) -eq "All" -and (Is-Blank $txtManagedSearch.Text)) {
-        $lblManagedCount.Text = "Konta: $($filteredRows.Count)"
+        $lblManagedCount.Text = Get-UiText "ManagerAccounts.Count" @($filteredRows.Count)
     }
     else {
-        $lblManagedCount.Text = "Konta: $($filteredRows.Count) z $totalCount"
+        $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountFiltered" @($filteredRows.Count, $totalCount)
     }
     return $filteredRows.Count
 }
@@ -2566,7 +3084,7 @@ function Update-ManagedAccountsFilterView {
     if (-not $script:ManagedRowsLoaded) { return }
     $visibleCount = Refresh-ManagedAccountsGrid
     $totalCount = @($script:ManagedRowsAll).Count
-    Set-Status "Filter: $(Get-ManagedAccountsFilterText), text: '$($txtManagedSearch.Text)' - showing $visibleCount of $totalCount accounts." "Info"
+    Set-Status (Get-UiText "Status.Filter" @((Get-ManagedAccountsFilterText), $txtManagedSearch.Text, $visibleCount, $totalCount)) "Info"
 }
 
 function Get-CurrentVisibleManagedRows {
@@ -2578,13 +3096,13 @@ function Export-ManagedAccountsWithDialog {
     param([ValidateSet("CSV", "XLSX")][string]$Format)
 
     if (-not $script:ManagedRowsLoaded -or (@($script:ManagedRowsAll).Count -eq 0)) {
-        Show-InfoBox "Najpierw pobierz konta managera." "Brak danych"
+        Show-InfoBox (Get-UiText "Status.GetManagerAccountsFirst") (Get-UiText "Dialog.NoData")
         return
     }
 
     $rowsToExport = @(Get-CurrentVisibleManagedRows)
     if ($rowsToExport.Count -eq 0) {
-        Show-InfoBox "Bieżący filtr nie zawiera żadnych kont do eksportu." "Brak danych"
+        Show-InfoBox (Get-UiText "Status.FilterHasNoAccounts") (Get-UiText "Dialog.NoData")
         return
     }
 
@@ -2593,45 +3111,46 @@ function Export-ManagedAccountsWithDialog {
     $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $filterPart = Get-SafeFileNamePart -Text (Get-ManagedAccountsFilterText)
     $extension = $Format.ToLowerInvariant()
-    $defaultName = "konta_managera_${domainPart}_${loginPart}_${filterPart}_${stamp}.${extension}"
+    $fileNameBase = Get-UiText "Export.FileNameBase"
+    $defaultName = "${fileNameBase}_${domainPart}_${loginPart}_${filterPart}_${stamp}.${extension}"
 
     $dialog = New-Object System.Windows.Forms.SaveFileDialog
-    $dialog.Title = "Zapisz konta managera"
+    $dialog.Title = Get-UiText "Export.SaveTitle"
     $dialog.FileName = $defaultName
     $dialog.OverwritePrompt = $true
 
     if ($Format -eq "CSV") {
-        $dialog.Filter = "CSV rozdzielany średnikiem (*.csv)|*.csv|Wszystkie pliki (*.*)|*.*"
+        $dialog.Filter = Get-UiText "Export.CsvFilter"
         $dialog.DefaultExt = "csv"
     }
     else {
-        $dialog.Filter = "Excel Workbook (*.xlsx)|*.xlsx|Wszystkie pliki (*.*)|*.*"
+        $dialog.Filter = Get-UiText "Export.XlsxFilter"
         $dialog.DefaultExt = "xlsx"
     }
 
     if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
-        Set-Status "Export cancelled." "Info"
+        Set-Status (Get-UiText "Status.ExportCancelled") "Info"
         return
     }
 
     try {
-        Set-Status "Exporting $($rowsToExport.Count) accounts to $Format..." "Info"
+        Set-Status (Get-UiText "Status.Exporting" @($rowsToExport.Count, $Format)) "Info"
         if ($Format -eq "CSV") { Export-ManagedAccountsToCsv -Rows $rowsToExport -Path $dialog.FileName }
         else { Export-ManagedAccountsToXlsx -Rows $rowsToExport -Path $dialog.FileName }
-        Set-Status "OK - export completed: $($dialog.FileName)" "Ok"
-        Show-InfoBox "Eksport zakończony.`n`nPlik:`n$($dialog.FileName)" "Eksport gotowy"
+        Set-Status (Get-UiText "Status.ExportReady" @($dialog.FileName)) "Ok"
+        Show-InfoBox (Get-UiText "Status.ExportCompleted" @($dialog.FileName)) (Get-UiText "Status.ExportCompletedTitle")
     }
     catch {
         $msg = $_.Exception.Message
-        Set-Status "Export error: $msg" "Error"
-        Show-ErrorBox "Nie udało się wykonać eksportu.`n`n$msg" "Błąd eksportu"
+        Set-Status (Get-UiText "Status.ExportError" @($msg)) "Error"
+        Show-ErrorBox (Get-UiText "Status.ExportFailed" @($msg)) (Get-UiText "Status.ExportErrorTitle")
     }
 }
 
 function Copy-SelectedLoginsToClipboard {
     try {
         if ($gridManaged.SelectedRows.Count -eq 0) {
-            Show-InfoBox "Zaznacz co najmniej jeden wiersz." "Brak zaznaczenia"
+            Show-InfoBox (Get-UiText "Status.SelectRow") (Get-UiText "Dialog.NoSelection")
             return
         }
 
@@ -2642,11 +3161,11 @@ function Copy-SelectedLoginsToClipboard {
         $text = ($logins | Sort-Object) -join [Environment]::NewLine
         if (-not (Is-Blank $text)) {
             [System.Windows.Forms.Clipboard]::SetText($text)
-            Set-Status "Copied logins to clipboard: $($logins.Count)" "Ok"
+            Set-Status (Get-UiText "Status.LoginsCopied" @($logins.Count)) "Ok"
         }
     }
     catch {
-        Set-Status "Could not copy to clipboard: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.ClipboardFailed" @($_.Exception.Message)) "Error"
     }
 }
 
@@ -2654,11 +3173,12 @@ function Copy-SelectedLoginsToClipboard {
 # GUI
 # ==================================================
 
-Show-WinSplash -Milliseconds 1600 -Title "AD KOMBAJN" -Subtitle "HASŁA  •  KONTA  •  GRUPY" -Author "Autor: Krzysztof Lipa-Izdebski"
+if (-not (Select-UiLanguage)) { return }
+Show-WinSplash -Milliseconds 1600 -Title "AD KOMBAJN" -Subtitle (Get-UiText "Splash.Subtitle") -Version $script:AppVersion -Author (Get-UiText "Splash.Author" @($script:AppAuthor))
 
 $form = New-Object System.Windows.Forms.Form
 $script:MainForm = $form
-$form.Text = "$($script:AppName) $($script:AppVersion) - bez RSAT"
+$form.Text = Get-UiText "App.WindowTitle" @($script:AppName, $script:AppVersion)
 $form.StartPosition = "CenterScreen"
 $form.Size = New-Size 1240 780
 $form.MinimumSize = New-Size 1120 700
@@ -2668,13 +3188,13 @@ $form.KeyPreview = $true
 Set-DoubleBuffered $form
 Apply-AppWindowIcon $form
 
-# Global GUI exception handler to avoid showing an unfriendly .NET error window.
+# Global GUI exception handler to avoid displaying the raw .NET error dialog.
 try {
     [System.Windows.Forms.Application]::add_ThreadException({
         param($sender, $e)
-        $msg = "Nieobsłużony błąd interfejsu: " + $e.Exception.Message
+        $msg = Get-UiText "Error.GuiUnhandled" @($e.Exception.Message)
         Set-Status $msg "Error"
-        Show-ErrorBox $msg "Błąd AD Kombajna"
+        Show-ErrorBox $msg (Get-UiText "Error.AppTitle")
     })
 }
 catch { }
@@ -2716,8 +3236,8 @@ $header.Add_Paint({
     $soft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 232, 248, 255))
     $muted = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(170, 225, 240, 255))
     $g.DrawString("AD Kombajn", $titleFont, $white, 88, 18)
-    $g.DrawString("Walidacja, zmiana hasła, właściwości konta, grupy konta, konta managera, log", $subFont, $soft, 91, 55)
-    $authorText = "Autor: Krzysztof Lipa-Izdebski"
+    $g.DrawString((Get-UiText "Header.Subtitle"), $subFont, $soft, 91, 55)
+    $authorText = Get-UiText "Header.Author" @($script:AppAuthor)
     $size = $g.MeasureString($authorText, $authorFont)
     $g.DrawString($authorText, $authorFont, $muted, ($sender.Width - $size.Width - 22), 64)
     $titleFont.Dispose(); $subFont.Dispose(); $authorFont.Dispose(); $white.Dispose(); $soft.Dispose(); $muted.Dispose()
@@ -2729,14 +3249,14 @@ $contextPanel.Height = 92
 $contextPanel.Padding = New-Object System.Windows.Forms.Padding(14, 10, 14, 8)
 $contextPanel.BackColor = $script:Theme.Back
 
-$grpContext = New-CardGroup "Kontekst pracy" 14 8 1072 74
+$grpContext = New-CardGroup (Get-UiText "Context.Title") 14 8 1072 74
 $grpContext.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
-$lblDomain = New-Label "Domena / DC:" 18 31 90 22 9 ([System.Drawing.FontStyle]::Regular)
+$lblDomain = New-Label (Get-UiText "Context.Domain") 18 31 90 22 9 ([System.Drawing.FontStyle]::Regular)
 $txtDomain = New-TextBoxEx 112 28 245 $false
 if (-not (Is-Blank $env:USERDNSDOMAIN)) { $txtDomain.Text = $env:USERDNSDOMAIN } else { $txtDomain.Text = $env:USERDOMAIN }
 
-$lblLogin = New-Label "Login konta:" 382 31 90 22 9 ([System.Drawing.FontStyle]::Regular)
+$lblLogin = New-Label (Get-UiText "Context.AccountLogin") 382 31 90 22 9 ([System.Drawing.FontStyle]::Regular)
 $txtLogin = New-TextBoxEx 470 28 220 $false
 
 $chkUseLdaps = New-Object System.Windows.Forms.CheckBox
@@ -2746,7 +3266,7 @@ $chkUseLdaps.AutoSize = $true
 $chkUseLdaps.Font = New-UiFont 9
 $chkUseLdaps.ForeColor = $script:Theme.Text
 
-$lblMode = New-Label "Domyślnie: LDAP 389 + signing/sealing, bez RSAT." 828 31 225 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblMode = New-Label (Get-UiText "Context.Mode") 808 31 245 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblMode.ForeColor = $script:Theme.Muted
 $lblMode.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 
@@ -2754,7 +3274,7 @@ $grpContext.Controls.AddRange(@($lblDomain, $txtDomain, $lblLogin, $txtLogin, $c
 $contextPanel.Controls.Add($grpContext)
 
 try {
-    $tabs = New-Object KombajnColorTabControlV21Public
+    $tabs = New-Object KombajnColorTabControlV21
 }
 catch {
     $tabs = New-Object System.Windows.Forms.TabControl
@@ -2769,36 +3289,35 @@ try {
 catch { }
 
 $tabValidate = New-Object System.Windows.Forms.TabPage
-$tabValidate.Text = "Walidacja hasła"
+$tabValidate.Text = Get-UiText "Tab.ValidatePassword"
 $tabValidate.BackColor = $script:Theme.Back
 
 $tabChange = New-Object System.Windows.Forms.TabPage
-$tabChange.Text = "Zmiana hasła"
+$tabChange.Text = Get-UiText "Tab.ChangePassword"
 $tabChange.BackColor = $script:Theme.Back
 
 $tabManager = New-Object System.Windows.Forms.TabPage
-$tabManager.Text = "Konta managera"
+$tabManager.Text = Get-UiText "Tab.ManagerAccounts"
 $tabManager.BackColor = $script:Theme.Back
 
-
 $tabAccountProps = New-Object System.Windows.Forms.TabPage
-$tabAccountProps.Text = "Właściwości konta"
+$tabAccountProps.Text = Get-UiText "Tab.AccountProperties"
 $tabAccountProps.BackColor = $script:Theme.Back
 
 $tabAccountGroups = New-Object System.Windows.Forms.TabPage
-$tabAccountGroups.Text = "Grupy konta"
+$tabAccountGroups.Text = Get-UiText "Tab.AccountGroups"
 $tabAccountGroups.BackColor = $script:Theme.Back
 
 $tabGroupMembers = New-Object System.Windows.Forms.TabPage
-$tabGroupMembers.Text = "Członkowie grupy"
+$tabGroupMembers.Text = Get-UiText "Tab.GroupMembers"
 $tabGroupMembers.BackColor = $script:Theme.Back
 
 $tabManagedGroups = New-Object System.Windows.Forms.TabPage
-$tabManagedGroups.Text = "Grupy managera"
+$tabManagedGroups.Text = Get-UiText "Tab.ManagedGroups"
 $tabManagedGroups.BackColor = $script:Theme.Back
 
 $tabLog = New-Object System.Windows.Forms.TabPage
-$tabLog.Text = "Log"
+$tabLog.Text = Get-UiText "Tab.Log"
 $tabLog.BackColor = $script:Theme.Back
 
 [void]$tabs.TabPages.Add($tabValidate)
@@ -2811,27 +3330,27 @@ $tabLog.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabLog)
 
 # ---- Password validation tab ----
-$grpValidate = New-CardGroup "Walidacja hasła" 18 18 1042 145
+$grpValidate = New-CardGroup (Get-UiText "Validation.Title") 18 18 1042 145
 $grpValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
-$lblValidatePassword = New-Label "Hasło:" 18 40 100 22
+$lblValidatePassword = New-Label (Get-UiText "Validation.Password") 18 40 100 22
 $txtValidatePassword = New-TextBoxEx 130 37 310 $true
 
 $chkShowValidatePassword = New-Object System.Windows.Forms.CheckBox
-$chkShowValidatePassword.Text = "Pokaż hasło"
+$chkShowValidatePassword.Text = Get-UiText "Validation.ShowPassword"
 $chkShowValidatePassword.Location = New-Point 460 40
 $chkShowValidatePassword.AutoSize = $true
 $chkShowValidatePassword.Font = New-UiFont 9
 $chkShowValidatePassword.ForeColor = $script:Theme.Text
 
-$btnValidate = New-FlatButton "Sprawdź" 130 82 118 34
-$btnClearValidate = New-SoftButton "Wyczyść" 258 82 118 34
-$lblValidateHint = New-Label "Walidacja używa PrincipalContext.ValidateCredentials(), bez RSAT i bez modułu ActiveDirectory." 460 85 535 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$btnValidate = New-FlatButton (Get-UiText "Validation.Check") 130 82 118 34
+$btnClearValidate = New-SoftButton (Get-UiText "Common.Clear") 258 82 118 34
+$lblValidateHint = New-Label (Get-UiText "Validation.Hint") 460 85 535 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblValidateHint.ForeColor = $script:Theme.Muted
 $lblValidateHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpValidate.Controls.AddRange(@($lblValidatePassword, $txtValidatePassword, $chkShowValidatePassword, $btnValidate, $btnClearValidate, $lblValidateHint))
 
-$grpLogValidate = New-CardGroup "Log" 18 185 1042 415
+$grpLogValidate = New-CardGroup (Get-UiText "Common.Log") 18 185 1042 415
 $grpLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
 $txtLogValidate = New-Object System.Windows.Forms.TextBox
@@ -2844,36 +3363,36 @@ $txtLogValidate.ReadOnly = $true
 $txtLogValidate.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
 $txtLogValidate.Font = New-Object System.Drawing.Font("Consolas", 9)
 $txtLogValidate.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogValidate = New-SoftButton "Wyczyść log" 906 386 120 28
+$btnClearLogValidate = New-SoftButton (Get-UiText "Common.ClearLog") 906 386 120 28
 $btnClearLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 $grpLogValidate.Controls.AddRange(@($txtLogValidate, $btnClearLogValidate))
 
 # ---- Password change tab ----
-$grpChange = New-CardGroup "Zmiana hasła: stare → nowe" 18 18 1042 210
+$grpChange = New-CardGroup (Get-UiText "Change.Title") 18 18 1042 210
 $grpChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
 
-$lblOldPassword = New-Label "Stare hasło:" 18 38 105 22
+$lblOldPassword = New-Label (Get-UiText "Change.OldPassword") 18 38 105 22
 $txtOldPassword = New-TextBoxEx 135 35 310 $true
-$lblNewPassword = New-Label "Nowe hasło:" 18 75 105 22
+$lblNewPassword = New-Label (Get-UiText "Change.NewPassword") 18 75 105 22
 $txtNewPassword = New-TextBoxEx 135 72 310 $true
-$lblRepeatPassword = New-Label "Powtórz:" 18 112 105 22
+$lblRepeatPassword = New-Label (Get-UiText "Change.RepeatPassword") 18 112 105 22
 $txtRepeatPassword = New-TextBoxEx 135 109 310 $true
 
 $chkShowPasswords = New-Object System.Windows.Forms.CheckBox
-$chkShowPasswords.Text = "Pokaż hasła"
+$chkShowPasswords.Text = Get-UiText "Change.ShowPasswords"
 $chkShowPasswords.Location = New-Point 470 37
 $chkShowPasswords.AutoSize = $true
 $chkShowPasswords.Font = New-UiFont 9
 $chkShowPasswords.ForeColor = $script:Theme.Text
 
-$btnChange = New-FlatButton "Zmień hasło" 135 153 140 36 $script:Theme.Accent ([System.Drawing.Color]::White)
-$btnClearChange = New-SoftButton "Wyczyść" 285 153 110 36
-$lblChangeHint = New-Label "Zmiana hasła przez LDAP unicodePwd: DELETE starego + ADD nowego." 470 75 535 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$btnChange = New-FlatButton (Get-UiText "Change.Button") 135 153 140 36 $script:Theme.Accent ([System.Drawing.Color]::White)
+$btnClearChange = New-SoftButton (Get-UiText "Common.Clear") 285 153 110 36
+$lblChangeHint = New-Label (Get-UiText "Change.Hint") 470 75 535 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblChangeHint.ForeColor = $script:Theme.Muted
 $lblChangeHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpChange.Controls.AddRange(@($lblOldPassword, $txtOldPassword, $lblNewPassword, $txtNewPassword, $lblRepeatPassword, $txtRepeatPassword, $chkShowPasswords, $btnChange, $btnClearChange, $lblChangeHint))
 
-$grpLogChange = New-CardGroup "Log" 18 245 1042 355
+$grpLogChange = New-CardGroup (Get-UiText "Common.Log") 18 245 1042 355
 $grpLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
 $txtLogChange = New-Object System.Windows.Forms.TextBox
@@ -2886,12 +3405,12 @@ $txtLogChange.ReadOnly = $true
 $txtLogChange.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
 $txtLogChange.Font = New-Object System.Drawing.Font("Consolas", 9)
 $txtLogChange.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogChange = New-SoftButton "Wyczyść log" 906 326 120 28
+$btnClearLogChange = New-SoftButton (Get-UiText "Common.ClearLog") 906 326 120 28
 $btnClearLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 $grpLogChange.Controls.AddRange(@($txtLogChange, $btnClearLogChange))
 
 # ---- Log tab ----
-$grpLogGlobal = New-CardGroup "Log zdarzeń" 18 18 1042 582
+$grpLogGlobal = New-CardGroup (Get-UiText "Log.Events") 18 18 1042 582
 $grpLogGlobal.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
 $txtLogMain = New-Object System.Windows.Forms.TextBox
@@ -2905,10 +3424,10 @@ $txtLogMain.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
 $txtLogMain.Font = New-Object System.Drawing.Font("Consolas", 9)
 $txtLogMain.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 
-$btnCopyLogMain = New-SoftButton "Kopiuj log" 770 540 120 28
+$btnCopyLogMain = New-SoftButton (Get-UiText "Common.CopyLog") 770 540 120 28
 $btnCopyLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
-$btnClearLogMain = New-SoftButton "Wyczyść log" 906 540 120 28
+$btnClearLogMain = New-SoftButton (Get-UiText "Common.ClearLog") 906 540 120 28
 $btnClearLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
 
 $grpLogGlobal.Controls.AddRange(@($txtLogMain, $btnCopyLogMain, $btnClearLogMain))
@@ -2926,15 +3445,15 @@ $accountPropsTop.Dock = [System.Windows.Forms.DockStyle]::Top
 $accountPropsTop.Height = 90
 $accountPropsTop.BackColor = $script:Theme.Back
 
-$btnGetAccountProps = New-FlatButton "Pobierz właściwości" 18 16 160 34
-$btnClearAccountProps = New-SoftButton "Wyczyść" 188 16 95 34
-$btnCopyAccountProps = New-SoftButton "Kopiuj zaznaczone" 293 16 140 34
-$btnCopyAllAccountProps = New-SoftButton "Kopiuj wszystko" 443 16 130 34
+$btnGetAccountProps = New-FlatButton (Get-UiText "AccountProperties.Get") 18 16 160 34
+$btnClearAccountProps = New-SoftButton (Get-UiText "Common.Clear") 188 16 95 34
+$btnCopyAccountProps = New-SoftButton (Get-UiText "Common.CopySelected") 293 16 140 34
+$btnCopyAllAccountProps = New-SoftButton (Get-UiText "Common.CopyAll") 443 16 130 34
 
-$lblAccountPropsInfo = New-Label "Pokazuje atrybuty LDAP konta, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADUser -Properties *." 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblAccountPropsInfo = New-Label (Get-UiText "AccountProperties.Info") 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblAccountPropsInfo.ForeColor = $script:Theme.Muted
 
-$lblAccountPropsCount = New-Label "Właściwości: -" 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblAccountPropsCount = New-Label (Get-UiText "AccountProperties.CountEmpty") 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblAccountPropsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblAccountPropsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
@@ -2966,9 +3485,9 @@ $gridAccountProps.RowTemplate.Height = 25
 $gridAccountProps.DefaultCellStyle.WrapMode = [System.Windows.Forms.DataGridViewTriState]::False
 Set-DoubleBuffered $gridAccountProps
 
-[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Attribute" "Atrybut" 230 $true))
-[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Value" "Wartość" 720 $true))
-[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Count" "Ile" 60 $true))
+[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Attribute" (Get-UiText "Column.Attribute") 230 $true))
+[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Value" (Get-UiText "Column.Value") 720 $true))
+[void]$gridAccountProps.Columns.Add((New-TextGridColumn "Count" (Get-UiText "Column.Count") 60 $true))
 $gridAccountProps.Columns[0].FillWeight = 24
 $gridAccountProps.Columns[1].FillWeight = 70
 $gridAccountProps.Columns[2].FillWeight = 6
@@ -2982,15 +3501,15 @@ $accountGroupsTop.Dock = [System.Windows.Forms.DockStyle]::Top
 $accountGroupsTop.Height = 90
 $accountGroupsTop.BackColor = $script:Theme.Back
 
-$btnGetAccountGroups = New-FlatButton "Pobierz grupy" 18 16 135 34
-$btnClearAccountGroups = New-SoftButton "Wyczyść" 163 16 95 34
-$btnCopyAccountGroups = New-SoftButton "Kopiuj zaznaczone" 268 16 140 34
-$btnCopyAllAccountGroups = New-SoftButton "Kopiuj wszystko" 418 16 130 34
+$btnGetAccountGroups = New-FlatButton (Get-UiText "AccountGroups.Get") 18 16 135 34
+$btnClearAccountGroups = New-SoftButton (Get-UiText "Common.Clear") 163 16 95 34
+$btnCopyAccountGroups = New-SoftButton (Get-UiText "Common.CopySelected") 268 16 140 34
+$btnCopyAllAccountGroups = New-SoftButton (Get-UiText "Common.CopyAll") 418 16 130 34
 
-$lblAccountGroupsInfo = New-Label "Pokazuje grupy domenowe konta: memberOf oraz primaryGroupID, bez RSAT." 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblAccountGroupsInfo = New-Label (Get-UiText "AccountGroups.Info") 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblAccountGroupsInfo.ForeColor = $script:Theme.Muted
 
-$lblAccountGroupsCount = New-Label "Grupy: -" 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblAccountGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblAccountGroupsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblAccountGroupsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
@@ -3021,13 +3540,13 @@ $gridAccountGroups.GridColor = $script:Theme.Border
 $gridAccountGroups.RowTemplate.Height = 25
 Set-DoubleBuffered $gridAccountGroups
 
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Name" "Nazwa" 190 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "SamAccountName" "Login grupy" 150 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "DisplayName" "Display name" 190 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Type" "Typ" 95 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Scope" "Zakres" 95 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Source" "Źródło" 115 $true))
-[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Description" "Opis" 260 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Name" (Get-UiText "Column.Name") 190 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "SamAccountName" (Get-UiText "Column.GroupLogin") 150 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "DisplayName" (Get-UiText "Column.DisplayName") 190 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Type" (Get-UiText "Column.Type") 95 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Scope" (Get-UiText "Column.Scope") 95 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Source" (Get-UiText "Column.Source") 115 $true))
+[void]$gridAccountGroups.Columns.Add((New-TextGridColumn "Description" (Get-UiText "Column.Description") 260 $true))
 [void]$gridAccountGroups.Columns.Add((New-TextGridColumn "DistinguishedName" "DN" 300 $false))
 
 $tabAccountGroups.Controls.Add($gridAccountGroups)
@@ -3041,18 +3560,18 @@ $groupMembersTop.Dock = [System.Windows.Forms.DockStyle]::Top
 $groupMembersTop.Height = 118
 $groupMembersTop.BackColor = $script:Theme.Back
 
-$lblGroupMembersGroup = New-Label "Grupa:" 18 18 80 24
+$lblGroupMembersGroup = New-Label (Get-UiText "GroupMembers.Group") 18 18 80 24
 $txtGroupMembersGroup = New-TextBoxEx 105 15 330 $false
 
-$btnGetGroupMembers = New-FlatButton "Pobierz członków" 455 14 150 34
-$btnClearGroupMembers = New-SoftButton "Wyczyść" 615 14 95 34
-$btnCopyGroupMembers = New-SoftButton "Kopiuj zaznaczone" 720 14 140 34
-$btnCopyAllGroupMembers = New-SoftButton "Kopiuj wszystko" 870 14 130 34
+$btnGetGroupMembers = New-FlatButton (Get-UiText "GroupMembers.Get") 455 14 150 34
+$btnClearGroupMembers = New-SoftButton (Get-UiText "Common.Clear") 615 14 95 34
+$btnCopyGroupMembers = New-SoftButton (Get-UiText "Common.CopySelected") 720 14 140 34
+$btnCopyAllGroupMembers = New-SoftButton (Get-UiText "Common.CopyAll") 870 14 130 34
 
-$lblGroupMembersInfo = New-Label "Pokazuje bezpośrednich członków grupy domenowej z atrybutu member. Grupy zagnieżdżone są pokazane jako obiekty grupowe, bez rozwijania rekurencyjnego." 18 58 960 42 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblGroupMembersInfo = New-Label (Get-UiText "GroupMembers.Info") 18 58 960 42 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblGroupMembersInfo.ForeColor = $script:Theme.Muted
 
-$lblGroupMembersCount = New-Label "Członkowie: -" 760 90 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblGroupMembersCount = New-Label (Get-UiText "GroupMembers.CountEmpty") 760 90 300 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblGroupMembersCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblGroupMembersCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
@@ -3083,13 +3602,13 @@ $gridGroupMembers.GridColor = $script:Theme.Border
 $gridGroupMembers.RowTemplate.Height = 25
 Set-DoubleBuffered $gridGroupMembers
 
-[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "Name" "Nazwa" 190 $true))
-[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "SamAccountName" "Login" 150 $true))
-[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "DisplayName" "Display name" 190 $true))
-[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "ObjectType" "Typ" 95 $true))
+[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "Name" (Get-UiText "Column.Name") 190 $true))
+[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "SamAccountName" (Get-UiText "Column.Login") 150 $true))
+[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "DisplayName" (Get-UiText "Column.DisplayName") 190 $true))
+[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "ObjectType" (Get-UiText "Column.Type") 95 $true))
 [void]$gridGroupMembers.Columns.Add((New-TextGridColumn "Enabled" "Enabled" 80 $true))
 [void]$gridGroupMembers.Columns.Add((New-TextGridColumn "UserPrincipalName" "UPN" 210 $true))
-[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "Description" "Opis" 260 $true))
+[void]$gridGroupMembers.Columns.Add((New-TextGridColumn "Description" (Get-UiText "Column.Description") 260 $true))
 [void]$gridGroupMembers.Columns.Add((New-TextGridColumn "DistinguishedName" "DN" 320 $false))
 
 $tabGroupMembers.Controls.Add($gridGroupMembers)
@@ -3103,15 +3622,15 @@ $managedGroupsTop.Dock = [System.Windows.Forms.DockStyle]::Top
 $managedGroupsTop.Height = 90
 $managedGroupsTop.BackColor = $script:Theme.Back
 
-$btnGetManagedGroups = New-FlatButton "Pobierz grupy" 18 16 135 34
-$btnClearManagedGroups = New-SoftButton "Wyczyść" 163 16 95 34
-$btnCopyManagedGroups = New-SoftButton "Kopiuj zaznaczone" 268 16 140 34
-$btnCopyAllManagedGroups = New-SoftButton "Kopiuj wszystko" 418 16 130 34
+$btnGetManagedGroups = New-FlatButton (Get-UiText "ManagedGroups.Get") 18 16 135 34
+$btnClearManagedGroups = New-SoftButton (Get-UiText "Common.Clear") 163 16 95 34
+$btnCopyManagedGroups = New-SoftButton (Get-UiText "Common.CopySelected") 268 16 140 34
+$btnCopyAllManagedGroups = New-SoftButton (Get-UiText "Common.CopyAll") 418 16 130 34
 
-$lblManagedGroupsInfo = New-Label "Pokazuje grupy domenowe, których atrybut manager wskazuje konto z pola Login konta." 18 58 820 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblManagedGroupsInfo = New-Label (Get-UiText "ManagedGroups.Info") 18 58 820 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblManagedGroupsInfo.ForeColor = $script:Theme.Muted
 
-$lblManagedGroupsCount = New-Label "Grupy: -" 860 22 220 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblManagedGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 860 22 220 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblManagedGroupsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblManagedGroupsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
@@ -3142,56 +3661,56 @@ $gridManagedGroups.GridColor = $script:Theme.Border
 $gridManagedGroups.RowTemplate.Height = 25
 Set-DoubleBuffered $gridManagedGroups
 
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Name" "Nazwa" 190 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "SamAccountName" "Login grupy" 150 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "DisplayName" "Display name" 190 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Type" "Typ" 95 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Scope" "Zakres" 95 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Source" "Źródło" 115 $true))
-[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Description" "Opis" 260 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Name" (Get-UiText "Column.Name") 190 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "SamAccountName" (Get-UiText "Column.GroupLogin") 150 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "DisplayName" (Get-UiText "Column.DisplayName") 190 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Type" (Get-UiText "Column.Type") 95 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Scope" (Get-UiText "Column.Scope") 95 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Source" (Get-UiText "Column.Source") 115 $true))
+[void]$gridManagedGroups.Columns.Add((New-TextGridColumn "Description" (Get-UiText "Column.Description") 260 $true))
 [void]$gridManagedGroups.Columns.Add((New-TextGridColumn "DistinguishedName" "DN" 300 $false))
 
 $tabManagedGroups.Controls.Add($gridManagedGroups)
 $tabManagedGroups.Controls.Add($managedGroupsTop)
 
 
-# ---- Managed accounts tab ----
+# ---- Manager accounts tab ----
 $managerTop = New-Object System.Windows.Forms.Panel
 $managerTop.Dock = [System.Windows.Forms.DockStyle]::Top
 $managerTop.Height = 92
 $managerTop.BackColor = $script:Theme.Back
 
-$btnManaged = New-FlatButton "Pobierz konta" 18 16 135 34
-$btnClearManaged = New-SoftButton "Wyczyść" 163 16 95 34
-$btnExportCsv = New-SoftButton "Eksport CSV" 268 16 112 34
-$btnExportXlsx = New-SoftButton "Eksport XLSX" 390 16 118 34
-$btnCopyLogins = New-SoftButton "Kopiuj loginy" 518 16 120 34
+$btnManaged = New-FlatButton (Get-UiText "ManagerAccounts.Get") 18 16 135 34
+$btnClearManaged = New-SoftButton (Get-UiText "Common.Clear") 163 16 95 34
+$btnExportCsv = New-SoftButton (Get-UiText "ManagerAccounts.ExportCsv") 268 16 112 34
+$btnExportXlsx = New-SoftButton (Get-UiText "ManagerAccounts.ExportXlsx") 390 16 118 34
+$btnCopyLogins = New-SoftButton (Get-UiText "ManagerAccounts.CopyLogins") 518 16 120 34
 
-$lblManagedFilter = New-Label "Pokaż:" 18 60 50 22
+$lblManagedFilter = New-Label (Get-UiText "ManagerAccounts.Show") 18 60 50 22
 $rdoManagedAll = New-Object System.Windows.Forms.RadioButton
-$rdoManagedAll.Text = "wszystkie"
+$rdoManagedAll.Text = Get-UiText "Filter.All"
 $rdoManagedAll.Location = New-Point 72 58
 $rdoManagedAll.AutoSize = $true
 $rdoManagedAll.Checked = $true
 $rdoManagedAll.Font = New-UiFont 9
 $rdoManagedActive = New-Object System.Windows.Forms.RadioButton
-$rdoManagedActive.Text = "aktywne"
+$rdoManagedActive.Text = Get-UiText "Filter.Active"
 $rdoManagedActive.Location = New-Point 162 58
 $rdoManagedActive.AutoSize = $true
 $rdoManagedActive.Font = New-UiFont 9
 $rdoManagedInactive = New-Object System.Windows.Forms.RadioButton
-$rdoManagedInactive.Text = "nieaktywne"
+$rdoManagedInactive.Text = Get-UiText "Filter.Inactive"
 $rdoManagedInactive.Location = New-Point 242 58
 $rdoManagedInactive.AutoSize = $true
 $rdoManagedInactive.Font = New-UiFont 9
 
-$lblSearch = New-Label "Szukaj:" 380 60 55 22
+$lblSearch = New-Label (Get-UiText "ManagerAccounts.Search") 380 60 55 22
 $txtManagedSearch = New-TextBoxEx 435 57 230 $false
 
-$lblManagedCount = New-Label "Konta: -" 700 22 360 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblManagedCount = New-Label (Get-UiText "ManagerAccounts.CountEmpty") 700 22 360 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblManagedCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblManagedCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
-$lblManagedInfo = New-Label "Eksport obejmuje aktualnie widoczne wiersze, czyli filtr + wyszukiwarkę." 700 56 360 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblManagedInfo = New-Label (Get-UiText "ManagerAccounts.ExportInfo") 700 56 360 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblManagedInfo.ForeColor = $script:Theme.Muted
 $lblManagedInfo.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblManagedInfo.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
@@ -3223,13 +3742,13 @@ $gridManaged.GridColor = $script:Theme.Border
 $gridManaged.RowTemplate.Height = 24
 Set-DoubleBuffered $gridManaged
 
-[void]$gridManaged.Columns.Add((New-TextGridColumn "SamAccountName" "Login" 120 $true))
-[void]$gridManaged.Columns.Add((New-TextGridColumn "Name" "Nazwa" 150 $true))
-[void]$gridManaged.Columns.Add((New-TextGridColumn "DisplayName" "Display name" 185 $true))
-[void]$gridManaged.Columns.Add((New-TextGridColumn "Enabled" "Aktywne" 70 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "SamAccountName" (Get-UiText "Column.Login") 120 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "Name" (Get-UiText "Column.Name") 150 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "DisplayName" (Get-UiText "Column.DisplayName") 185 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "Enabled" (Get-UiText "Column.Enabled") 70 $true))
 [void]$gridManaged.Columns.Add((New-TextGridColumn "UserPrincipalName" "UPN" 210 $true))
-[void]$gridManaged.Columns.Add((New-TextGridColumn "Description" "Opis" 260 $true))
-[void]$gridManaged.Columns.Add((New-TextGridColumn "PasswordLastSet" "Hasło zmienione" 150 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "Description" (Get-UiText "Column.Description") 260 $true))
+[void]$gridManaged.Columns.Add((New-TextGridColumn "PasswordLastSet" (Get-UiText "Column.PasswordLastSet") 150 $true))
 [void]$gridManaged.Columns.Add((New-TextGridColumn "DistinguishedName" "DN" 260 $false))
 
 
@@ -3251,7 +3770,7 @@ function Set-AccountPropertiesGrid {
                 )
             }
         }
-        $lblAccountPropsCount.Text = "Właściwości: $(@($Rows).Count)"
+        $lblAccountPropsCount.Text = Get-UiText "AccountProperties.Count" @(@($Rows).Count)
         $gridAccountProps.ClearSelection()
     }
     finally {
@@ -3306,7 +3825,7 @@ function Set-AccountGroupsGrid {
                 )
             }
         }
-        $lblAccountGroupsCount.Text = "Grupy: $(@($Rows).Count)"
+        $lblAccountGroupsCount.Text = Get-UiText "Groups.Count" @(@($Rows).Count)
         $gridAccountGroups.ClearSelection()
     }
     finally {
@@ -3351,7 +3870,7 @@ function Get-SelectedAccountGroupRows {
         }
     }
     catch { }
-    return @($rows | Sort-Object Name, SamAccountName)
+    return @($rows | Sort-Object -Property @("Name", "SamAccountName"))
 }
 
 
@@ -3375,7 +3894,7 @@ function Set-ManagedGroupsGrid {
                 )
             }
         }
-        $lblManagedGroupsCount.Text = "Grupy: $(@($Rows).Count)"
+        $lblManagedGroupsCount.Text = Get-UiText "Groups.Count" @(@($Rows).Count)
         $gridManagedGroups.ClearSelection()
     }
     finally {
@@ -3401,7 +3920,7 @@ function Get-SelectedManagedGroupRows {
         }
     }
     catch { }
-    return @($rows | Sort-Object Name, SamAccountName)
+    return @($rows | Sort-Object -Property @("Name", "SamAccountName"))
 }
 
 
@@ -3428,7 +3947,7 @@ function Set-DomainGroupMembersGrid {
                 )
             }
         }
-        $lblGroupMembersCount.Text = "Członkowie: $(@($Rows).Count)"
+        $lblGroupMembersCount.Text = Get-UiText "GroupMembers.Count" @(@($Rows).Count)
         $gridGroupMembers.ClearSelection()
     }
     finally {
@@ -3473,7 +3992,7 @@ function Get-SelectedDomainGroupMemberRows {
         }
     }
     catch { }
-    return @($rows | Sort-Object ObjectType, SamAccountName, Name)
+    return @($rows | Sort-Object -Property @("ObjectType", "SamAccountName", "Name"))
 }
 
 $statusStrip = New-Object System.Windows.Forms.StatusStrip
@@ -3481,7 +4000,7 @@ $statusStrip.SizingGrip = $true
 $statusStrip.BackColor = [System.Drawing.Color]::FromArgb(235, 241, 248)
 $toolStatus = New-Object System.Windows.Forms.ToolStripStatusLabel
 $script:StatusLabel = $toolStatus
-$toolStatus.Text = "Gotowy."
+$toolStatus.Text = Get-UiText "Status.ReadyShort"
 $toolStatus.ForeColor = $script:Theme.Text
 $toolStatus.Spring = $true
 $toolStatus.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
@@ -3501,34 +4020,34 @@ $btnClearLogMain.Add_Click({
         if ($null -ne $txtLogMain) { $txtLogMain.Clear() }
     }
     catch { }
-    Set-Status "Log cleared." "Info" $false
+    Set-Status (Get-UiText "Status.LogCleared") "Info" $false
 })
 
 $btnCopyLogMain.Add_Click({
     try {
         if ($null -eq $txtLogMain -or (Is-Blank $txtLogMain.Text)) {
-            Set-Status "Log is empty." "Warn"
+            Set-Status (Get-UiText "Status.LogEmpty") "Warn"
             return
         }
 
         [System.Windows.Forms.Clipboard]::SetText($txtLogMain.Text)
-        Set-Status "Log copied to clipboard." "Ok"
+        Set-Status (Get-UiText "Status.LogCopied") "Ok"
     }
     catch {
-        Set-Status "Could not copy log: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.LogCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
 $btnClearValidate.Add_Click({
     $txtValidatePassword.Clear()
-    Set-Status "Validation password field cleared." "Info"
+    Set-Status (Get-UiText "Status.ValidationPasswordCleared") "Info"
 })
 
 $btnClearChange.Add_Click({
     $txtOldPassword.Clear()
     $txtNewPassword.Clear()
     $txtRepeatPassword.Clear()
-    Set-Status "Password change fields cleared." "Info"
+    Set-Status (Get-UiText "Status.ChangeFieldsCleared") "Info"
 })
 
 $chkShowValidatePassword.Add_CheckedChanged({
@@ -3550,21 +4069,21 @@ $btnValidate.Add_Click({
     $port = Get-LdapPortFromUi
 
     if ((Is-Blank $domain) -or (Is-Blank $login) -or (Is-Blank $password)) {
-        Set-Status "Enter domain/DC, login and password to validate." "Error"
+        Set-Status (Get-UiText "Status.EnterValidationData") "Error"
         return
     }
 
     try {
         $btnValidate.Enabled = $false
-        Set-Status "Validating password for $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.ValidatingPassword" @($domain, $login)) "Info"
         $result = Test-AdPasswordNoRsat -DomainOrDc $domain -Login $login -Password $password -UseLdaps $useLdaps -Port $port
 
         if ($result.Success) {
-            Set-Status "OK - password is valid for $domain\$login." "Ok"
+            Set-Status (Get-UiText "Status.PasswordValid" @($domain, $login)) "Ok"
         }
         else {
-            Set-Status "NOT OK - password validation failed." "Error"
-            Show-ErrorBox $result.Message "Walidacja hasła"
+            Set-Status (Get-UiText "Status.PasswordInvalid") "Error"
+            Show-ErrorBox $result.Message (Get-UiText "Tab.ValidatePassword")
         }
     }
     finally {
@@ -3582,47 +4101,47 @@ $btnChange.Add_Click({
     $port = Get-LdapPortFromUi
 
     if ((Is-Blank $domain) -or (Is-Blank $login)) {
-        Set-Status "Enter domain/DC and login." "Error"
+        Set-Status (Get-UiText "Status.EnterDomainLogin") "Error"
         return
     }
     if ((Is-Blank $oldPassword) -or (Is-Blank $newPassword) -or (Is-Blank $repeatPassword)) {
-        Set-Status "Enter old password, new password and repeated new password." "Error"
+        Set-Status (Get-UiText "Status.EnterPasswordChangeData") "Error"
         return
     }
     if ($newPassword -ne $repeatPassword) {
-        Set-Status "New passwords do not match." "Error"
+        Set-Status (Get-UiText "Status.PasswordsDiffer") "Error"
         return
     }
     if ($oldPassword -eq $newPassword) {
-        Set-Status "New password is the same as the old password." "Error"
+        Set-Status (Get-UiText "Status.PasswordUnchanged") "Error"
         return
     }
 
     $confirm = [System.Windows.Forms.MessageBox]::Show(
-        "Zmienić hasło dla konta $domain\$login?`n`nOperacja używa starego i nowego hasła, bez resetu administracyjnego.",
-        "Potwierdzenie zmiany hasła",
+        (Get-UiText "Status.ConfirmPasswordChange" @($domain, $login)),
+        (Get-UiText "Status.ConfirmPasswordChangeTitle"),
         [System.Windows.Forms.MessageBoxButtons]::YesNo,
         [System.Windows.Forms.MessageBoxIcon]::Question
     )
     if ($confirm -ne [System.Windows.Forms.DialogResult]::Yes) {
-        Set-Status "Password change cancelled." "Info"
+        Set-Status (Get-UiText "Status.PasswordChangeCancelled") "Info"
         return
     }
 
     try {
         $btnChange.Enabled = $false
-        Set-Status "Changing password for $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.ChangingPassword" @($domain, $login)) "Info"
         $result = Change-AdAccountPasswordNoRsat -DomainOrDc $domain -Login $login -OldPassword $oldPassword -NewPassword $newPassword -UseLdaps $useLdaps -Port $port
 
         if ($result.Success) {
-            Set-Status "OK - password has been changed for $domain\$login." "Ok"
+            Set-Status (Get-UiText "Status.PasswordChanged" @($domain, $login)) "Ok"
             $txtOldPassword.Clear()
             $txtNewPassword.Clear()
             $txtRepeatPassword.Clear()
         }
         else {
-            Set-Status "Password change error for $domain\$login." "Error"
-            Show-ErrorBox $result.Message "Zmiana hasła"
+            Set-Status (Get-UiText "Status.PasswordChangeError" @($domain, $login)) "Error"
+            Show-ErrorBox $result.Message (Get-UiText "Tab.ChangePassword")
         }
     }
     finally {
@@ -3636,23 +4155,23 @@ $btnGetAccountProps.Add_Click({
     $login = $txtLogin.Text.Trim()
 
     if ((Is-Blank $domain) -or (Is-Blank $login)) {
-        Set-Status "Enter domain/DC and account login." "Error"
+        Set-Status (Get-UiText "Status.EnterAccount") "Error"
         return
     }
 
     try {
         $btnGetAccountProps.Enabled = $false
-        Set-Status "Loading account properties for $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) "Info"
         $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login)
         Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
-        Set-Status "OK - account properties loaded: $(@($script:AccountPropertyRows).Count)." "Ok"
+        Set-Status (Get-UiText "Status.AccountPropertiesReceived" @(@($script:AccountPropertyRows).Count)) "Ok"
     }
     catch {
         $script:AccountPropertyRows = @()
         Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
         $msg = $_.Exception.Message
-        Set-Status "Error loading account properties: $msg" "Error"
-        Show-ErrorBox $msg "Właściwości konta"
+        Set-Status (Get-UiText "Status.AccountPropertiesError" @($msg)) "Error"
+        Show-ErrorBox $msg (Get-UiText "Tab.AccountProperties")
     }
     finally {
         $btnGetAccountProps.Enabled = $true
@@ -3662,21 +4181,21 @@ $btnGetAccountProps.Add_Click({
 $btnClearAccountProps.Add_Click({
     $script:AccountPropertyRows = @()
     Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
-    Set-Status "Account properties cleared." "Info"
+    Set-Status (Get-UiText "Status.AccountPropertiesCleared") "Info"
 })
 
 $btnCopyAccountProps.Add_Click({
     try {
         $rows = @(Get-SelectedAccountPropertyRows)
         if ($rows.Count -eq 0) {
-            Set-Status "Select properties to copy." "Warn"
+            Set-Status (Get-UiText "Status.SelectProperties") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountPropertyRowsToClipboardText -Rows $rows))
-        Set-Status "Copied selected properties: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.PropertiesCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy properties: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.PropertiesCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3684,14 +4203,14 @@ $btnCopyAllAccountProps.Add_Click({
     try {
         $rows = @($script:AccountPropertyRows)
         if ($rows.Count -eq 0) {
-            Set-Status "No account properties to copy." "Warn"
+            Set-Status (Get-UiText "Status.NoProperties") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountPropertyRowsToClipboardText -Rows $rows))
-        Set-Status "Copied all properties: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.AllPropertiesCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy properties: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.PropertiesCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3700,7 +4219,7 @@ $btnGetAccountGroups.Add_Click({
     $login = $txtLogin.Text.Trim()
 
     if ((Is-Blank $domain) -or (Is-Blank $login)) {
-        Set-Status "Enter domain/DC and account login." "Error"
+        Set-Status (Get-UiText "Status.EnterAccount") "Error"
         return
     }
 
@@ -3708,28 +4227,28 @@ $btnGetAccountGroups.Add_Click({
 
     try {
         $btnGetAccountGroups.Enabled = $false
-        Set-Status "Loading account groups for $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.GettingAccountGroups" @($domain, $login)) "Info"
         $progressWindow = Show-BusyProgressWindow `
-            -Title "Grupy konta" `
-            -Message "Pobieram grupy konta" `
+            -Title (Get-UiText "Tab.AccountGroups") `
+            -Message (Get-UiText "Status.GettingAccountGroups" @($domain, $login)) `
             -Detail "$domain\$login"
 
         $script:AccountGroupRows = @(Get-AdAccountGroupsNoRsat -DomainOrDc $domain -Login $login -ProgressWindow $progressWindow)
         Set-AccountGroupsGrid -Rows $script:AccountGroupRows
 
         if (@($script:AccountGroupRows).Count -eq 0) {
-            Set-Status "OK - no groups found for account $domain\$login." "Warn"
+            Set-Status (Get-UiText "Status.NoAccountGroups" @($domain, $login)) "Warn"
         }
         else {
-            Set-Status "OK - account groups loaded: $(@($script:AccountGroupRows).Count)." "Ok"
+            Set-Status (Get-UiText "Status.AccountGroupsReceived" @(@($script:AccountGroupRows).Count)) "Ok"
         }
     }
     catch {
         $script:AccountGroupRows = @()
         Set-AccountGroupsGrid -Rows $script:AccountGroupRows
         $msg = $_.Exception.Message
-        Set-Status "Error loading account groups: $msg" "Error"
-        Show-ErrorBox $msg "Grupy konta"
+        Set-Status (Get-UiText "Status.AccountGroupsError" @($msg)) "Error"
+        Show-ErrorBox $msg (Get-UiText "Tab.AccountGroups")
     }
     finally {
         Close-BusyProgressWindow $progressWindow
@@ -3740,21 +4259,21 @@ $btnGetAccountGroups.Add_Click({
 $btnClearAccountGroups.Add_Click({
     $script:AccountGroupRows = @()
     Set-AccountGroupsGrid -Rows $script:AccountGroupRows
-    Set-Status "Account group list cleared." "Info"
+    Set-Status (Get-UiText "Status.AccountGroupsCleared") "Info"
 })
 
 $btnCopyAccountGroups.Add_Click({
     try {
         $rows = @(Get-SelectedAccountGroupRows)
         if ($rows.Count -eq 0) {
-            Set-Status "Select groups to copy." "Warn"
+            Set-Status (Get-UiText "Status.SelectGroups") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status "Copied selected groups: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.GroupsCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy groups: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.GroupsCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3762,14 +4281,14 @@ $btnCopyAllAccountGroups.Add_Click({
     try {
         $rows = @($script:AccountGroupRows)
         if ($rows.Count -eq 0) {
-            Set-Status "No account groups to copy." "Warn"
+            Set-Status (Get-UiText "Status.NoAccountGroupsToCopy") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status "Copied all groups: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.AllGroupsCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy groups: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.GroupsCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3780,12 +4299,12 @@ $btnGetGroupMembers.Add_Click({
     $groupIdentity = $txtGroupMembersGroup.Text.Trim()
 
     if (Is-Blank $domain) {
-        Set-Status "Enter domain/DC." "Error"
+        Set-Status (Get-UiText "Status.EnterDomain") "Error"
         return
     }
 
     if (Is-Blank $groupIdentity) {
-        Set-Status "Enter domain group name." "Error"
+        Set-Status (Get-UiText "Status.EnterGroup") "Error"
         return
     }
 
@@ -3793,28 +4312,28 @@ $btnGetGroupMembers.Add_Click({
 
     try {
         $btnGetGroupMembers.Enabled = $false
-        Set-Status "Loading group members for $domain\$groupIdentity..." "Info"
+        Set-Status (Get-UiText "Status.GettingGroupMembers" @($domain, $groupIdentity)) "Info"
         $progressWindow = Show-BusyProgressWindow `
-            -Title "Członkowie grupy" `
-            -Message "Pobieram członków grupy" `
+            -Title (Get-UiText "Tab.GroupMembers") `
+            -Message (Get-UiText "Status.GettingGroupMembers" @($domain, $groupIdentity)) `
             -Detail "$domain\$groupIdentity"
 
         $script:DomainGroupMemberRows = @(Get-AdDomainGroupMembersNoRsat -DomainOrDc $domain -GroupIdentity $groupIdentity -ProgressWindow $progressWindow)
         Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
 
         if (@($script:DomainGroupMemberRows).Count -eq 0) {
-            Set-Status "OK - group $domain\$groupIdentity has no direct members or they could not be read." "Warn"
+            Set-Status (Get-UiText "Status.NoGroupMembers" @($domain, $groupIdentity)) "Warn"
         }
         else {
-            Set-Status "OK - group members loaded: $(@($script:DomainGroupMemberRows).Count)." "Ok"
+            Set-Status (Get-UiText "Status.GroupMembersReceived" @(@($script:DomainGroupMemberRows).Count)) "Ok"
         }
     }
     catch {
         $script:DomainGroupMemberRows = @()
         Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
         $msg = $_.Exception.Message
-        Set-Status "Error loading group members: $msg" "Error"
-        Show-ErrorBox $msg "Członkowie grupy"
+        Set-Status (Get-UiText "Status.GroupMembersError" @($msg)) "Error"
+        Show-ErrorBox $msg (Get-UiText "Tab.GroupMembers")
     }
     finally {
         Close-BusyProgressWindow $progressWindow
@@ -3825,21 +4344,21 @@ $btnGetGroupMembers.Add_Click({
 $btnClearGroupMembers.Add_Click({
     $script:DomainGroupMemberRows = @()
     Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
-    Set-Status "Group member list cleared." "Info"
+    Set-Status (Get-UiText "Status.GroupMembersCleared") "Info"
 })
 
 $btnCopyGroupMembers.Add_Click({
     try {
         $rows = @(Get-SelectedDomainGroupMemberRows)
         if ($rows.Count -eq 0) {
-            Set-Status "Select group members to copy." "Warn"
+            Set-Status (Get-UiText "Status.SelectGroupMembers") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-DomainGroupMemberRowsToClipboardText -Rows $rows))
-        Set-Status "Copied selected group members: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.GroupMembersCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy group members: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.GroupMembersCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3847,14 +4366,14 @@ $btnCopyAllGroupMembers.Add_Click({
     try {
         $rows = @($script:DomainGroupMemberRows)
         if ($rows.Count -eq 0) {
-            Set-Status "No group members to copy." "Warn"
+            Set-Status (Get-UiText "Status.NoGroupMembersToCopy") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-DomainGroupMemberRowsToClipboardText -Rows $rows))
-        Set-Status "Copied all group members: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.AllGroupMembersCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy group members: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.GroupMembersCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3865,7 +4384,7 @@ $btnGetManagedGroups.Add_Click({
     $login = $txtLogin.Text.Trim()
 
     if ((Is-Blank $domain) -or (Is-Blank $login)) {
-        Set-Status "Enter domain/DC and manager login." "Error"
+        Set-Status (Get-UiText "Status.EnterManager") "Error"
         return
     }
 
@@ -3873,28 +4392,28 @@ $btnGetManagedGroups.Add_Click({
 
     try {
         $btnGetManagedGroups.Enabled = $false
-        Set-Status "Loading groups where managedBy points to $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.GettingManagedGroups" @($domain, $login)) "Info"
         $progressWindow = Show-BusyProgressWindow `
-            -Title "Grupy managera" `
-            -Message "Pobieram grupy managera" `
+            -Title (Get-UiText "Tab.ManagedGroups") `
+            -Message (Get-UiText "Status.GettingManagedGroups" @($domain, $login)) `
             -Detail "$domain\$login"
 
         $script:ManagedGroupRows = @(Get-ManagedGroups -DomainOrDc $domain -ManagerLogin $login -ProgressWindow $progressWindow)
         Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
 
         if (@($script:ManagedGroupRows).Count -eq 0) {
-            Set-Status "OK - no managedBy groups found for $domain\$login." "Warn"
+            Set-Status (Get-UiText "Status.NoManagedGroups" @($domain, $login)) "Warn"
         }
         else {
-            Set-Status "OK - managed groups found: $(@($script:ManagedGroupRows).Count)." "Ok"
+            Set-Status (Get-UiText "Status.ManagedGroupsReceived" @(@($script:ManagedGroupRows).Count)) "Ok"
         }
     }
     catch {
         $script:ManagedGroupRows = @()
         Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
         $msg = $_.Exception.Message
-        Set-Status "Error loading managed groups: $msg" "Error"
-        Show-ErrorBox $msg "Grupy managera"
+        Set-Status (Get-UiText "Status.ManagedGroupsError" @($msg)) "Error"
+        Show-ErrorBox $msg (Get-UiText "Tab.ManagedGroups")
     }
     finally {
         Close-BusyProgressWindow $progressWindow
@@ -3905,21 +4424,21 @@ $btnGetManagedGroups.Add_Click({
 $btnClearManagedGroups.Add_Click({
     $script:ManagedGroupRows = @()
     Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
-    Set-Status "Managed group list cleared." "Info"
+    Set-Status (Get-UiText "Status.ManagedGroupsCleared") "Info"
 })
 
 $btnCopyManagedGroups.Add_Click({
     try {
         $rows = @(Get-SelectedManagedGroupRows)
         if ($rows.Count -eq 0) {
-            Set-Status "Select managed groups to copy." "Warn"
+            Set-Status (Get-UiText "Status.SelectManagedGroups") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status "Copied selected managed groups: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.ManagedGroupsCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy managed groups: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.ManagedGroupsCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3927,14 +4446,14 @@ $btnCopyAllManagedGroups.Add_Click({
     try {
         $rows = @($script:ManagedGroupRows)
         if ($rows.Count -eq 0) {
-            Set-Status "No managed groups to copy." "Warn"
+            Set-Status (Get-UiText "Status.NoManagedGroupsToCopy") "Warn"
             return
         }
         [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status "Copied all managed groups: $($rows.Count)." "Ok"
+        Set-Status (Get-UiText "Status.AllManagedGroupsCopied" @($rows.Count)) "Ok"
     }
     catch {
-        Set-Status "Could not copy managed groups: $($_.Exception.Message)" "Error"
+        Set-Status (Get-UiText "Status.ManagedGroupsCopyFailed" @($_.Exception.Message)) "Error"
     }
 })
 
@@ -3944,13 +4463,13 @@ $btnManaged.Add_Click({
     $login = $txtLogin.Text.Trim()
 
     if ((Is-Blank $domain) -or (Is-Blank $login)) {
-        Set-Status "Enter domain/DC and manager login." "Error"
+        Set-Status (Get-UiText "Status.EnterManager") "Error"
         return
     }
 
     try {
         $btnManaged.Enabled = $false
-        Set-Status "Searching accounts where manager is $domain\$login..." "Info"
+        Set-Status (Get-UiText "Status.FindingManagerAccounts" @($domain, $login)) "Info"
         $script:ManagedRowsAll = @(Get-ManagedAccounts -DomainOrDc $domain -ManagerLogin $login)
         $script:ManagedRowsLoaded = $true
 
@@ -3959,10 +4478,10 @@ $btnManaged.Add_Click({
         $filterText = Get-ManagedAccountsFilterText
 
         if ($totalCount -eq 0) {
-            Set-Status "OK - no accounts found for manager $domain\$login." "Warn"
+            Set-Status (Get-UiText "Status.NoManagerAccounts" @($domain, $login)) "Warn"
         }
         else {
-            Set-Status "OK - accounts found: $totalCount; shown: $visibleCount ($filterText)." "Ok"
+            Set-Status (Get-UiText "Status.ManagerAccountsReceived" @($totalCount, $visibleCount, $filterText)) "Ok"
         }
     }
     catch {
@@ -3970,10 +4489,10 @@ $btnManaged.Add_Click({
         $script:ManagedRowsLoaded = $false
 $script:AccountPropertyRows = @()
         $gridManaged.Rows.Clear()
-        $lblManagedCount.Text = "Konta: -"
+        $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountEmpty"
         $msg = $_.Exception.Message
-        Set-Status "Error loading manager accounts: $msg" "Error"
-        Show-ErrorBox $msg "Konta managera"
+        Set-Status (Get-UiText "Status.ManagerAccountsError" @($msg)) "Error"
+        Show-ErrorBox $msg (Get-UiText "Tab.ManagerAccounts")
     }
     finally {
         $btnManaged.Enabled = $true
@@ -3988,8 +4507,8 @@ $script:AccountPropertyRows = @()
     $gridManaged.ClearSelection()
     $txtManagedSearch.Clear()
     $rdoManagedAll.Checked = $true
-    $lblManagedCount.Text = "Konta: -"
-    Set-Status "Manager account list cleared." "Info"
+    $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountEmpty"
+    Set-Status (Get-UiText "Status.ManagerAccountsCleared") "Info"
 })
 
 $btnExportCsv.Add_Click({ Export-ManagedAccountsWithDialog -Format "CSV" })
@@ -4010,7 +4529,7 @@ $form.Add_KeyDown({
 })
 
 $form.Add_Shown({
-    Set-Status "Ready. Enter domain/DC and login." "Info"
+    Set-Status (Get-UiText "Status.Ready") "Info"
     try { $txtLogin.Focus() } catch { }
 })
 
