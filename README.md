@@ -130,6 +130,9 @@ ADKombajn/
 ├── LICENSE
 ├── docs/
 │   └── images/
+│       ├── adkombajn-language-selection.png
+│       ├── adkombajn-splash-en.png
+│       ├── adkombajn-en.png
 │       └── adkombajn-main.png
 └── src/
 ```
