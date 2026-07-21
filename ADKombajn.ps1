@@ -1,6 +1,6 @@
 ﻿#requires -Version 5.1
-# Build: 1.0.0.19-public
-# AD Kombajn - rewritten from scratch
+# Build: 2.13.0-public
+# ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
 
@@ -1249,6 +1249,8 @@ function Show-WinSplash {
             [void]$disposables.Add($smallFont)
             $authorFont = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Italic)
             [void]$disposables.Add($authorFont)
+            $versionFont = New-Object System.Drawing.Font("Segoe UI Semibold", 9, [System.Drawing.FontStyle]::Regular)
+            [void]$disposables.Add($versionFont)
 
             $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
             [void]$disposables.Add($white)
