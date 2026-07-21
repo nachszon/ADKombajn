@@ -10,7 +10,7 @@ ADKombajn was created to simplify everyday Active Directory support tasks by col
 
 The application is written in PowerShell and uses a graphical Windows interface.
 
-> The current user interface is available in Polish.
+> The user interface is available in Polish and English.
 
 ## Features
 
@@ -19,6 +19,7 @@ ADKombajn currently provides:
 * Active Directory account lookup by login
 * password validation
 * password change using LDAP `unicodePwd`
+* Polish and English user interface
 * basic account information
 * account status and expiration information
 * account properties view
@@ -85,11 +86,18 @@ Alternatively, start the script from an existing PowerShell session:
 .\ADKombajn.ps1
 ```
 
+ADKombajn displays a Polish/English language selector at startup. You can bypass the selector with the `-Language` parameter:
+
+```powershell
+.\ADKombajn.ps1 -Language pl
+.\ADKombajn.ps1 -Language en
+```
+
 ## Usage
 
-1. Start ADKombajn.
-2. Enter the domain or domain controller in the **Domena/DC** field.
-3. Enter the account login in the **Login konta** field.
+1. Start ADKombajn and select Polish or English.
+2. Enter the domain or domain controller in the **Domain/DC** field.
+3. Enter the account login in the **Account login** field.
 4. Review or run the operation available in the application tabs:
 
    * password validation
@@ -135,7 +143,7 @@ MAJOR.MINOR.PATCH
 Example:
 
 ```text
-2.12.0
+2.13.0
 ```
 
 * **MAJOR** — incompatible changes or a major application redesign
@@ -158,7 +166,6 @@ Organization-specific modules and internal tools are not included in the public 
 
 ## Known limitations
 
-* the user interface is currently available only in Polish
 * the application currently targets Windows PowerShell 5.1
 * functionality depends on .NET Directory Services and LDAP access to Active Directory
 * Active Directory permissions may limit the returned results
@@ -168,7 +175,6 @@ Organization-specific modules and internal tools are not included in the public 
 
 Planned improvements may include:
 
-* English user interface
 * configurable domain selection
 * improved search and filtering
 * exporting selected results
