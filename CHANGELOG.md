@@ -12,12 +12,42 @@ MAJOR.MINOR.PATCH
 
 ### Planned
 
-- English user interface
 - configurable domain selection
 - improved filtering and search
 - additional export options
 - modular code structure
 - signed release packages
+
+## [2.13.0] - 2026-07-21
+
+### Added
+
+- Polish and English user interface in a single application.
+- Language selection dialog displayed at startup.
+- Optional `-Language pl` and `-Language en` command-line parameter.
+- Centralized translation dictionaries for user-facing text.
+- English translations for tabs, buttons, labels, table headers, status messages, logs and dialog boxes.
+- Localized splash screen and export headers.
+
+### Changed
+
+- Updated the application version to 2.13.0.
+- Updated the documentation for the bilingual interface and language selection.
+
+### Fixed
+
+- Closing the language selection dialog now exits the application instead of starting the Polish interface.
+- The splash screen now displays `WERSJA` in Polish and `VERSION` in English.
+
+## [2.12.1] - 2026-07-20
+
+### Added
+
+- Application version number on the splash screen.
+
+### Changed
+
+- Updated the application and release version to 2.12.1.
 
 ## [2.12.0] - 2026-07-16
 
