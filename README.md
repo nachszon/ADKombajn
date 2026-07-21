@@ -33,6 +33,11 @@ ADKombajn currently provides:
 
 ## Screenshots
 
+![ADKombajn language selection dialog](docs/images/adkombajn-language-selection.png)
+
+![ADKombajn English interface](docs/images/adkombajn-en.png)
+
+
 ![ADKombajn main window](docs/images/adkombajn-main.png)
 
 More screenshots will be added as the project develops.
