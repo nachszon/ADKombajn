@@ -1,3 +1,4 @@
+# Temporary workflow used to apply and validate the exit-button patch.
 name: Apply exit button patch
 
 on:
