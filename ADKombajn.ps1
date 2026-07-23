@@ -237,6 +237,7 @@ $script:Translations = @{
         "Change.ShowPasswords" = "Pokaż hasła"
         "Change.Button" = "Zmień hasło"
         "Change.Hint" = "Zmiana bez UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE starego + ADD nowego."
+        "Common.Exit" = "Zamknij"
         "Common.Clear" = "Wyczyść"
         "Common.CopySelected" = "Kopiuj zaznaczone"
         "Common.CopyAll" = "Kopiuj wszystko"
@@ -447,6 +448,7 @@ $script:Translations = @{
         "Change.ShowPasswords" = "Show passwords"
         "Change.Button" = "Change password"
         "Change.Hint" = "Password change without UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE old + ADD new."
+        "Common.Exit" = "Exit"
         "Common.Clear" = "Clear"
         "Common.CopySelected" = "Copy selected"
         "Common.CopyAll" = "Copy all"
@@ -3245,6 +3247,34 @@ $header.Add_Paint({
     $titleFont.Dispose(); $subFont.Dispose(); $authorFont.Dispose(); $white.Dispose(); $soft.Dispose(); $muted.Dispose()
 })
 
+$btnExit = New-Object System.Windows.Forms.Button
+$btnExit.Name = "btnExit"
+$btnExit.Text = "$([char]0x23FB)  $(Get-UiText "Common.Exit")"
+$btnExit.Size = New-Size 118 34
+$btnExit.Location = New-Point 0 16
+$btnExit.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
+$btnExit.Font = New-UiFont 9.5 ([System.Drawing.FontStyle]::Bold)
+$btnExit.ForeColor = [System.Drawing.Color]::White
+$btnExit.BackColor = [System.Drawing.Color]::FromArgb(25, 72, 128)
+$btnExit.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnExit.FlatAppearance.BorderSize = 1
+$btnExit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(190, 235, 248, 255)
+$btnExit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(38, 96, 158)
+$btnExit.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(10, 47, 92)
+$btnExit.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnExit.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter
+$btnExit.UseVisualStyleBackColor = $false
+$btnExit.TabStop = $false
+$btnExit.AccessibleName = Get-UiText "Common.Exit"
+
+$positionExitButton = {
+    $x = [Math]::Max(0, $header.ClientSize.Width - $btnExit.Width - 22)
+    $btnExit.Location = New-Point $x 16
+}
+$header.Add_Resize($positionExitButton)
+[void]$header.Controls.Add($btnExit)
+& $positionExitButton
+
 $contextPanel = New-Object System.Windows.Forms.Panel
 $contextPanel.Dock = [System.Windows.Forms.DockStyle]::Top
 $contextPanel.Height = 92
@@ -4016,6 +4046,10 @@ $form.Controls.Add($statusStrip)
 # ==================================================
 # Events
 # ==================================================
+
+$btnExit.Add_Click({
+    $form.Close()
+})
 
 $btnClearLogMain.Add_Click({
     try {
