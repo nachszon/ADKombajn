@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.0-public
+# Build: 2.13.1-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "AD Kombajn"
-$script:AppVersion = "2.13.0"
+$script:AppVersion = "2.13.1"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
