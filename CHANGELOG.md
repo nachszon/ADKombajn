@@ -18,6 +18,17 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.1] - 2026-07-23
+
+### Added
+
+- Dedicated `Zamknij` / `Exit` button in the application header.
+- Localized Exit button label for the Polish and English interfaces.
+
+### Changed
+
+- Updated the application and release version to 2.13.1.
+
 ## [2.13.0] - 2026-07-21
 
 ### Added
