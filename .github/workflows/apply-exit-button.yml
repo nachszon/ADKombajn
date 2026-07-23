@@ -1,0 +1,156 @@
+name: Apply exit button patch
+
+on:
+  push:
+    branches:
+      - feature/exit-button
+    paths:
+      - .github/workflows/apply-exit-button.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/exit-button
+          fetch-depth: 0
+
+      - name: Add the localized Exit button
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("ADKombajn.ps1")
+          raw = path.read_bytes()
+          bom = b"\xef\xbb\xbf"
+          has_bom = raw.startswith(bom)
+          text = raw[len(bom):].decode("utf-8") if has_bom else raw.decode("utf-8")
+          nl = "\r\n" if "\r\n" in text else "\n"
+
+          if '"Common.Exit"' in text or "$btnExit" in text:
+              raise SystemExit("Exit button code already exists; refusing to apply the patch twice.")
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"Expected one {label} anchor, found {count}.")
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              f'        "Common.Clear" = "Wyczyść"{nl}',
+              f'        "Common.Exit" = "Zamknij"{nl}'
+              f'        "Common.Clear" = "Wyczyść"{nl}',
+              "Polish translation",
+          )
+
+          replace_once(
+              f'        "Common.Clear" = "Clear"{nl}',
+              f'        "Common.Exit" = "Exit"{nl}'
+              f'        "Common.Clear" = "Clear"{nl}',
+              "English translation",
+          )
+
+          header_anchor = (
+              '    $titleFont.Dispose(); $subFont.Dispose(); $authorFont.Dispose(); '
+              '$white.Dispose(); $soft.Dispose(); $muted.Dispose()' + nl
+              + '})' + nl + nl
+              + '$contextPanel = New-Object System.Windows.Forms.Panel'
+          )
+
+          button_block = nl.join([
+              '    $titleFont.Dispose(); $subFont.Dispose(); $authorFont.Dispose(); $white.Dispose(); $soft.Dispose(); $muted.Dispose()',
+              '})',
+              '',
+              '$btnExit = New-Object System.Windows.Forms.Button',
+              '$btnExit.Name = "btnExit"',
+              '$btnExit.Text = "$([char]0x23FB)  $(Get-UiText \"Common.Exit\")"',
+              '$btnExit.Size = New-Size 118 34',
+              '$btnExit.Location = New-Point 0 16',
+              '$btnExit.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right',
+              '$btnExit.Font = New-UiFont 9.5 ([System.Drawing.FontStyle]::Bold)',
+              '$btnExit.ForeColor = [System.Drawing.Color]::White',
+              '$btnExit.BackColor = [System.Drawing.Color]::FromArgb(25, 72, 128)',
+              '$btnExit.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat',
+              '$btnExit.FlatAppearance.BorderSize = 1',
+              '$btnExit.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(190, 235, 248, 255)',
+              '$btnExit.FlatAppearance.MouseOverBackColor = [System.Drawing.Color]::FromArgb(38, 96, 158)',
+              '$btnExit.FlatAppearance.MouseDownBackColor = [System.Drawing.Color]::FromArgb(10, 47, 92)',
+              '$btnExit.Cursor = [System.Windows.Forms.Cursors]::Hand',
+              '$btnExit.TextAlign = [System.Drawing.ContentAlignment]::MiddleCenter',
+              '$btnExit.UseVisualStyleBackColor = $false',
+              '$btnExit.TabStop = $false',
+              '$btnExit.AccessibleName = Get-UiText "Common.Exit"',
+              '',
+              '$positionExitButton = {',
+              '    $x = [Math]::Max(0, $header.ClientSize.Width - $btnExit.Width - 22)',
+              '    $btnExit.Location = New-Point $x 16',
+              '}',
+              '$header.Add_Resize($positionExitButton)',
+              '[void]$header.Controls.Add($btnExit)',
+              '& $positionExitButton',
+              '',
+              '$contextPanel = New-Object System.Windows.Forms.Panel',
+          ])
+
+          replace_once(header_anchor, button_block, "header")
+
+          events_anchor = nl.join([
+              '# Events',
+              '# ==================================================',
+              '',
+              '$btnClearLogMain.Add_Click({',
+          ])
+          events_block = nl.join([
+              '# Events',
+              '# ==================================================',
+              '',
+              '$btnExit.Add_Click({',
+              '    $form.Close()',
+              '})',
+              '',
+              '$btnClearLogMain.Add_Click({',
+          ])
+          replace_once(events_anchor, events_block, "events section")
+
+          output = text.encode("utf-8")
+          if has_bom:
+              output = bom + output
+          path.write_bytes(output)
+          PY
+
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path ./ADKombajn.ps1),
+              [ref]$tokens,
+              [ref]$errors
+          ) | Out-Null
+
+          if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+          }
+
+      - name: Commit the implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ADKombajn.ps1
+          if git diff --cached --quiet; then
+            echo "No code changes to commit."
+            exit 0
+          fi
+          git commit -m "Add exit button to application header"
+          git push origin HEAD:feature/exit-button
