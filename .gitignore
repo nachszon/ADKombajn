@@ -1,0 +1,17 @@
+# Build artifacts
+*.exe
+*.pdb
+
+# Exported data
+*.csv
+*.xlsx
+
+# PowerShell / editor files
+.vscode/
+.idea/
+*.tmp
+*.bak
+
+# Windows
+Thumbs.db
+Desktop.ini
