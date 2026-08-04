@@ -120,6 +120,7 @@ The amount of information returned depends on the user's Active Directory permis
 ```text
 ADKombajn/
 ├── ADKombajn.ps1
+├── .gitignore
 ├── build.ps1
 ├── kombajn.ico
 ├── README.md
