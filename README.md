@@ -125,7 +125,6 @@ ADKombajn/
 ├── build.ps1
 ├── kombajn.ico
 ├── README.md
-├── README.pl.md
 ├── CHANGELOG.md
 ├── LICENSE
 ├── docs/
