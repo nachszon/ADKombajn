@@ -185,12 +185,10 @@ Planned improvements may include:
 
 * configurable domain selection
 * improved search and filtering
-* exporting selected results
 * modular PowerShell code structure
 * configuration file support
 * additional validation and error handling
 * signed releases
-* standalone executable packages
 
 ## Contributing
 
