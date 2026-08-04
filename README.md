@@ -42,8 +42,6 @@ ADKombajn currently provides:
 
 ![ADKombajn main window](docs/images/adkombajn-main.png)
 
-More screenshots will be added as the project develops.
-
 ## Requirements
 
 * Windows 10, Windows 11 or Windows Server
