@@ -18,6 +18,14 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.2] - 2026-08-04
+
+### Changed
+
+- Unified application branding from `AD Kombajn` and `AD KOMBAJN` to `ADKombajn`.
+- Updated the application name across the user interface, splash screen, dialog titles, EXE metadata and XLSX export metadata.
+- Updated the application and release version to 2.13.2.
+
 ## [2.13.1] - 2026-07-23
 
 ### Added

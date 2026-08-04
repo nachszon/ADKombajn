@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.1-public
+# Build: 2.13.2-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -147,8 +147,8 @@ catch { }
 # Application state
 # ==================================================
 
-$script:AppName = "AD Kombajn"
-$script:AppVersion = "2.13.1"
+$script:AppName = "ADKombajn"
+$script:AppVersion = "2.13.2"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -181,7 +181,7 @@ $script:Translations = @{
         "Busy.Detail" = "Operacja jest wykonywana w Active Directory."
         "Busy.DoNotClose" = "Proszę nie zamykać aplikacji w trakcie operacji."
         "Error.GuiUnhandled" = "Nieobsłużony błąd interfejsu: {0}"
-        "Error.AppTitle" = "Błąd AD Kombajna"
+        "Error.AppTitle" = "Błąd ADKombajna"
         "Ldap.HintPasswordPolicy" = "Prawdopodobnie polityka haseł: złożoność, historia haseł, minimalny wiek hasła albo zbyt krótkie hasło."
         "Ldap.HintCredentials" = "Prawdopodobnie błędny login albo stare hasło."
         "Ldap.HintConnection" = "Nie mogę połączyć się z kontrolerem domeny. Sprawdź domenę/DC, sieć, port 389/636 i LDAPS."
@@ -392,7 +392,7 @@ $script:Translations = @{
         "Busy.Detail" = "The operation is being performed in Active Directory."
         "Busy.DoNotClose" = "Please do not close the application during the operation."
         "Error.GuiUnhandled" = "Unhandled interface error: {0}"
-        "Error.AppTitle" = "AD Kombajn error"
+        "Error.AppTitle" = "ADKombajn error"
         "Ldap.HintPasswordPolicy" = "The password policy may have rejected the password because of complexity, history, minimum age, or length requirements."
         "Ldap.HintCredentials" = "The login or old password is probably incorrect."
         "Ldap.HintConnection" = "Cannot connect to the domain controller. Check the domain/DC, network, port 389/636, and LDAPS."
@@ -751,7 +751,7 @@ function Select-UiLanguage {
     if ($script:UiLanguage -in @("pl", "en")) { return $true }
 
     $dialog = New-Object System.Windows.Forms.Form
-    $dialog.Text = "AD Kombajn - Language / Język"
+    $dialog.Text = "ADKombajn - Language / Język"
     $dialog.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
     $dialog.FormBorderStyle = [System.Windows.Forms.FormBorderStyle]::FixedDialog
     $dialog.MaximizeBox = $false
@@ -1139,7 +1139,7 @@ function New-RoundedRectanglePath {
 function Show-WinSplash {
     param(
         [int]$Milliseconds = 1600,
-        [string]$Title = "AD KOMBAJN",
+        [string]$Title = "ADKombajn",
         [string]$Subtitle = (Get-UiText "Splash.Subtitle"),
         [string]$Version = $script:AppVersion,
         [string]$Author = (Get-UiText "Splash.Author" @($script:AppAuthor))
@@ -2890,8 +2890,8 @@ function Export-ManagedAccountsToXlsx {
         Write-Utf8NoBomFile -Path (Join-Path $tmp "docProps\core.xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:creator>AD Kombajn</dc:creator>
-  <cp:lastModifiedBy>AD Kombajn</cp:lastModifiedBy>
+  <dc:creator>ADKombajn</dc:creator>
+  <cp:lastModifiedBy>ADKombajn</cp:lastModifiedBy>
   <dcterms:created xsi:type="dcterms:W3CDTF">$nowUtc</dcterms:created>
   <dcterms:modified xsi:type="dcterms:W3CDTF">$nowUtc</dcterms:modified>
 </cp:coreProperties>
@@ -2900,7 +2900,7 @@ function Export-ManagedAccountsToXlsx {
         Write-Utf8NoBomFile -Path (Join-Path $tmp "docProps\app.xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-  <Application>AD Kombajn</Application>
+  <Application>ADKombajn</Application>
 </Properties>
 "@
 
@@ -3178,7 +3178,7 @@ function Copy-SelectedLoginsToClipboard {
 # ==================================================
 
 if (-not (Select-UiLanguage)) { return }
-Show-WinSplash -Milliseconds 1600 -Title "AD KOMBAJN" -Subtitle (Get-UiText "Splash.Subtitle") -Version $script:AppVersion -Author (Get-UiText "Splash.Author" @($script:AppAuthor))
+Show-WinSplash -Milliseconds 1600 -Title "ADKombajn" -Subtitle (Get-UiText "Splash.Subtitle") -Version $script:AppVersion -Author (Get-UiText "Splash.Author" @($script:AppAuthor))
 
 $form = New-Object System.Windows.Forms.Form
 $script:MainForm = $form
@@ -3239,7 +3239,7 @@ $header.Add_Paint({
     $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
     $soft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 232, 248, 255))
     $muted = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(170, 225, 240, 255))
-    $g.DrawString("AD Kombajn", $titleFont, $white, 88, 18)
+    $g.DrawString("ADKombajn", $titleFont, $white, 88, 18)
     $g.DrawString((Get-UiText "Header.Subtitle"), $subFont, $soft, 91, 55)
     $authorText = Get-UiText "Header.Author" @($script:AppAuthor)
     $size = $g.MeasureString($authorText, $authorFont)
