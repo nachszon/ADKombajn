@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.13.2.0",
+    [string]$Version = "2.13.3.0",
     [string]$InputFile = ".\ADKombajn.ps1",
     [string]$IconFile = ".\kombajn.ico",
     [string]$OutputDirectory = "."
@@ -113,6 +113,7 @@ $ps2exeArgs = @{
     InputFile   = $InputFile
     OutputFile  = $OutputFile
     NoConsole   = $true
+    x64         = $true
     Title       = "ADKombajn"
     Description = "Active Directory support helper"
     Product     = "ADKombajn"

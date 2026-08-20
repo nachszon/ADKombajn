@@ -138,7 +138,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.13.2.0"
+.\build.ps1 -Version "2.13.3.0"
 ```
 
 The build script:
@@ -146,6 +146,7 @@ The build script:
 * verifies that `ADKombajn.ps1` is saved as UTF-8 with BOM
 * embeds application metadata and `kombajn.ico`
 * creates a windowed executable without a console window
+* explicitly targets the x64 architecture
 * writes the release asset as `ADKombajn-<version>-win-x64.exe`
 
 Custom input, icon, and output locations can be supplied when needed:
@@ -203,7 +204,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.13.2` is built with the four-part Windows executable version `2.13.2.0`.
+For example, release `2.13.3` is built with the four-part Windows executable version `2.13.3.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
