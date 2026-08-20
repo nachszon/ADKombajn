@@ -18,6 +18,14 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.3] - 2026-08-20
+
+### Changed
+
+* Updated the build script to explicitly force the x64 architecture when compiling the executable with PS2EXE.
+* Updated the application and release version to 2.13.3.
+
+
 ## [2.13.2] - 2026-08-04
 
 ### Changed
