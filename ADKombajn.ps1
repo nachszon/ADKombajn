@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.3-public
+# Build: 2.13.4-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.13.3"
+$script:AppVersion = "2.13.4"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -3270,6 +3270,8 @@ $btnExit.AccessibleName = Get-UiText "Common.Exit"
 $positionExitButton = {
     $x = [Math]::Max(0, $header.ClientSize.Width - $btnExit.Width - 22)
     $btnExit.Location = New-Point $x 16
+    # The header is custom-painted, so resize must repaint its entire surface.
+    $header.Invalidate($true)
 }
 $header.Add_Resize($positionExitButton)
 [void]$header.Controls.Add($btnExit)
