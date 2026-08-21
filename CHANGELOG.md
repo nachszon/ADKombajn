@@ -18,6 +18,13 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.4] - 2026-08-21
+
+### Changed
+
+* Banished visual “ghosts” that appeared in the application header when resizing the main window.
+* Updated the application and release version to 2.13.4.
+
 ## [2.13.3] - 2026-08-20
 
 ### Changed
