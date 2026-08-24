@@ -25,7 +25,7 @@ MAJOR.MINOR.PATCH
 - Replaced the previous magnifying-glass branding with a green combine harvester.
 - Redesigned the splash screen and application header with a clean, consistent green theme.
 - Updated the language selection and primary action buttons to use the new branding colors.
-- Added a multi-resolution `ADKombajn.ico` file and updated the build script to use it.
+- Added a multi-resolution `kombajn.ico` file and updated the build script to use it.
 - Updated the application and release version to 2.13.5.
 
 ## [2.13.4] - 2026-08-21
