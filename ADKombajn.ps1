@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.13.4"
+$script:AppVersion = "2.13.5"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
