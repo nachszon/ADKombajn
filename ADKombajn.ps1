@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.4-public
+# Build: 2.13.5-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
