@@ -260,6 +260,10 @@ When reporting an issue, include:
 
 Do not include real usernames, domain names, distinguished names, passwords, or other organization-specific data.
 
+## Collaboration
+
+Parts of the implementation and documentation were developed with the assistance of ChatGPT, and I don't feel guilty about it :)
+
 ## Disclaimer
 
 This project is not affiliated with or endorsed by Microsoft.
