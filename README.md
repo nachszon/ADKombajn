@@ -262,7 +262,7 @@ Do not include real usernames, domain names, distinguished names, passwords, or 
 
 ## Collaboration
 
-Parts of the implementation and documentation were developed with the assistance of ChatGPT, and I don't feel guilty about it :)
+Parts of the implementation and documentation were developed with the assistance of ChatGPT, and I don't feel guilty about it 😄
 
 ## Disclaimer
 
