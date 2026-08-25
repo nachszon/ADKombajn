@@ -20,8 +20,8 @@ ADKombajn currently provides:
 * domain group members view
 * accounts assigned to the selected user as manager
 * groups managed by the selected user
-* filtering and searching of manager account results
-* CSV and XLSX export of the currently visible manager account rows
+* filtering and searching of managed account results
+* CSV and XLSX export of the currently visible managed account rows
 * copy-friendly output for further analysis or reporting
 * operation log displayed directly in the application
 * Polish and English user interface
@@ -121,7 +121,7 @@ The available operations and returned information depend on the permissions of t
    * find groups managed by an account
    * review the operation log
 
-Manager account results can be filtered, searched, copied, and exported to CSV or XLSX. Exports contain the rows currently visible after applying the filter and search criteria.
+Managed account results can be filtered, searched, copied, and exported to CSV or XLSX. Exports contain the rows currently visible after applying the filter and search criteria.
 
 ## Building the executable
 
