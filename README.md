@@ -30,6 +30,10 @@ ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not requi
 
 ## Screenshots
 
+> [!NOTE]
+> All names, accounts, groups, domains, and directory data shown in the screenshots are fictional and were created solely for demonstration purposes. No real Active Directory data is displayed.
+
+
 ![ADKombajn language selection dialog](docs/images/00-language-selection.png)
 
 ![ADKombajn splash screen](docs/images/01-splash-en.png)
