@@ -30,13 +30,26 @@ ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not requi
 
 ## Screenshots
 
-![ADKombajn language selection dialog](docs/images/adkombajn-language-selection.png)
+![ADKombajn language selection dialog](docs/images/00-language-selection.png)
 
-![ADKombajn splash screen](docs/images/adkombajn-splash-en.png)
+![ADKombajn splash screen](docs/images/01-splash-en.png)
 
-![ADKombajn English interface](docs/images/adkombajn-en.png)
+![ADKombajn password validation](docs/images/02-password-validation.png)
 
-![ADKombajn Polish interface](docs/images/adkombajn-main.png)
+![ADKombajn password change](docs/images/03-password-change.png)
+
+![ADKombajn account properties](docs/images/04-account-properties.png)
+
+![ADKombajn account groups](docs/images/05-account-groups.png)
+
+![ADKombajn group members](docs/images/06-group-members.png)
+
+![ADKombajn managed groups](docs/images/07-managed-groups.png)
+
+![ADKombajn managed accounts](docs/images/08-managed-accounts.png)
+
+![ADKombajn log](docs/images/09-log.png)
+
 
 ## Download and run
 
