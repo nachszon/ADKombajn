@@ -31,16 +31,6 @@ MAJOR.MINOR.PATCH
 - Corrected the managed groups description to reference the appropriate Active Directory `managedBy` attribute.
 - Updated the application and release version to 2.13.6.
 
-## [2.13.6] - 2026-08-25
-
-### Changed
-
-
-- Changed the label of the "Grupy managera" button to "Zarządzane grupy" in the Polish version.
-- Changed the label of the "Konta managera" button to "Zarządzane konta" in the Polish version.
-- Changed the label of the "Manager accounts" button to "Managed accounts" in the English version.
-- Updated the application and release version to 2.13.6.
-
 ## [2.13.5] - 2026-08-24
 
 ### Changed
