@@ -40,7 +40,7 @@ ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not requi
 
 ![ADKombajn password validation](docs/images/02-password-validation.png)
 
-![ADKombajn_password_change](docs/images/03-password-change.png)](docs/images/03-password-change.png)
+![ADKombajn_password_change](docs/images/03-password-change.png)]
 
 ![ADKombajn account properties](docs/images/04-account-properties.png)
 
