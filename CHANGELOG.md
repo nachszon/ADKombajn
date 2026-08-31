@@ -18,6 +18,14 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.7] - 2026-08-31
+
+### Changed
+
+* Disabled and visually cleared the **Account login** field while the **Group members** tab is active.
+* Preserved the previously entered account login and automatically restored it after leaving the **Group members** tab.
+* Updated the application and release version to 2.13.7.
+
 ## [2.13.6] - 2026-08-25
 
 ### Changed
