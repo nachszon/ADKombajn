@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.6-public
+# Build: 2.13.7-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.13.6"
+$script:AppVersion = "2.13.7"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -5169,6 +5169,29 @@ $tabLog.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabManagedGroups)
 [void]$tabs.TabPages.Add($tabManager)
 [void]$tabs.TabPages.Add($tabLog)
+
+$script:PreservedAccountLogin = ""
+$script:IsAccountLoginSuppressed = $false
+
+$tabs.Add_SelectedIndexChanged({
+    $isGroupMembersTab = ($tabs.SelectedTab -eq $tabGroupMembers)
+
+    if ($isGroupMembersTab -and -not $script:IsAccountLoginSuppressed) {
+        $script:PreservedAccountLogin = $txtLogin.Text
+        $txtLogin.Clear()
+        $txtLogin.Enabled = $false
+        $lblLogin.Enabled = $false
+        $script:IsAccountLoginSuppressed = $true
+        return
+    }
+
+    if (-not $isGroupMembersTab -and $script:IsAccountLoginSuppressed) {
+        $txtLogin.Enabled = $true
+        $lblLogin.Enabled = $true
+        $txtLogin.Text = $script:PreservedAccountLogin
+        $script:IsAccountLoginSuppressed = $false
+    }
+})
 
 # ---- Password validation tab ----
 $grpValidate = New-CardGroup (Get-UiText "Validation.Title") 18 18 1042 145
