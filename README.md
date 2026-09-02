@@ -277,6 +277,11 @@ When reporting an issue, include:
 
 Do not include real usernames, domain names, distinguished names, passwords, or other organization-specific data.
 
+## Gitlab
+The repository is also available on gitlab:
+
+[ADKombajn on Gitlab](https://gitlab.com/nexuss1903/adkombajn)
+
 ## Collaboration
 
 Parts of the implementation and documentation were developed with the assistance of ChatGPT, and I don't feel guilty about it 😄
