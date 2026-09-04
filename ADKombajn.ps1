@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.7-public
+# Build: 2.13.8-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.13.7"
+$script:AppVersion = "2.13.8"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -6116,6 +6116,8 @@ $btnGetAccountGroups.Add_Click({
         Set-AccountGroupsGrid -Rows $script:AccountGroupRows
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.AccountGroupsError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.AccountGroups")
     }
     finally {
@@ -6201,6 +6203,8 @@ $btnGetGroupMembers.Add_Click({
         Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.GroupMembersError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.GroupMembers")
     }
     finally {
@@ -6281,6 +6285,8 @@ $btnGetManagedGroups.Add_Click({
         Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.ManagedGroupsError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.ManagedGroups")
     }
     finally {

@@ -18,6 +18,16 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.13.8] - 2026-09-04
+
+### Fixed
+
+* Closed progress windows before displaying search error messages on the **Account groups**, **Group members** and **Managed groups** tabs, preventing the progress animation from continuing after an account or group was not found.
+
+### Changed
+
+* Updated the application and release version to 2.13.8.
+
 ## [2.13.7] - 2026-08-31
 
 ### Changed

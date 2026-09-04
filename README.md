@@ -155,7 +155,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.13.7.0"
+.\build.ps1 -Version "2.13.8.0"
 ```
 
 The build script:
@@ -221,7 +221,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.13.7` is built with the four-part Windows executable version `2.13.7.0`.
+For example, release `2.13.8` is built with the four-part Windows executable version `2.13.8.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
