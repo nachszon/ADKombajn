@@ -204,10 +204,16 @@ ADKombajn/
 ├── .gitignore
 ├── docs/
 │   └── images/
-│       ├── adkombajn-language-selection.png
-│       ├── adkombajn-splash-en.png
-│       ├── adkombajn-en.png
-│       └── adkombajn-main.png
+│       ├── 00-language-selection.png
+│       ├── 01-splash-en.png
+│       ├── 02-password-validation.png
+│       ├── 03-password-change.png
+│       ├── 04-account-properties.png
+│       ├── 05-account-groups.png
+│       ├── 06-group-members.png
+│       ├── 07-managed-groups.png
+│       ├── 08-managed-accounts.png
+│       ├── 09-log.png
 └── src/
 ```
 
