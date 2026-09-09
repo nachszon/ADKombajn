@@ -213,7 +213,7 @@ ADKombajn/
 │       ├── 06-group-members.png
 │       ├── 07-managed-groups.png
 │       ├── 08-managed-accounts.png
-│       ├── 09-log.png
+│       └──  09-log.png
 └── src/
 ```
 
