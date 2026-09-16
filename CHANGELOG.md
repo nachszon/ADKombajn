@@ -16,7 +16,7 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
-## [2.14.0] - 2026-09-14
+## [2.14.0] - 2026-09-16
 
 ### Added
 
