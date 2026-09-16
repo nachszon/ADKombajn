@@ -13,10 +13,22 @@ MAJOR.MINOR.PATCH
 ### Planned
 
 - configurable domain selection
-- improved filtering and search
-- additional export options
 - modular code structure
 - signed release packages
+
+## [2.14.0] - 2026-09-14
+
+### Added
+
+* Added real-time search to the **Account properties**, **Account groups** and **Managed groups** tabs.
+* Added CSV and XLSX export of the currently visible rows on all three tabs.
+
+### Changed
+
+* Replaced the previous **Copy selected** and **Copy all** actions on the **Account groups** and **Managed groups** tabs with **Copy names**, which copies only group names from the selected rows.
+* Replaced the previous property copy actions with **Copy value**, which copies only the value from the selected account property row.
+* Added filtered and total result counters to the updated tabs.
+* Updated the application, demo and build versions to 2.14.0.
 
 ## [2.13.8] - 2026-09-04
 
