@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.13.8-public
+# Build: 2.14.0-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,15 +148,19 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.13.8"
+$script:AppVersion = "2.14.0"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
 $script:ManagedRowsLoaded = $false
 $script:AccountPropertyRows = @()
+$script:AccountPropertyRowsLoaded = $false
 $script:AccountGroupRows = @()
+$script:AccountGroupRowsLoaded = $false
 $script:DomainGroupMemberRows = @()
+$script:DomainGroupMemberRowsLoaded = $false
 $script:ManagedGroupRows = @()
+$script:ManagedGroupRowsLoaded = $false
 $script:MainForm = $null
 $script:StatusLabel = $null
 $script:txtLog = $null
@@ -2062,6 +2066,7 @@ $script:Translations = @{
         "Error.ManagerNotFound" = "Nie znaleziono wskazanego konta: {0}\{1}"
         "Error.GroupNotFound" = "Nie znaleziono grupy: {0}\{1}"
         "Error.ExportNoAccounts" = "Brak kont do eksportu."
+        "Error.ExportNoRows" = "Brak rekordów do eksportu."
         "Error.ExcelColumn" = "Nieprawidłowy numer kolumny Excela: {0}"
         "Value.Never" = "Nigdy"
         "Value.UnknownObject" = "Nie udało się pobrać obiektu po DN"
@@ -2106,25 +2111,32 @@ $script:Translations = @{
         "Change.Hint" = "Zmiana bez UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE starego + ADD nowego."
         "Common.Exit" = "Zamknij"
         "Common.Clear" = "Wyczyść"
-        "Common.CopySelected" = "Kopiuj zaznaczone"
-        "Common.CopyAll" = "Kopiuj wszystko"
+        "Common.ExportCsv" = "Eksport CSV"
+        "Common.ExportXlsx" = "Eksport XLSX"
+        "Common.CopyNames" = "Kopiuj nazwy"
+        "Common.Search" = "Szukaj:"
+        "Common.ExportVisibleInfo" = "Eksport obejmuje aktualnie widoczne wiersze."
         "Common.Log" = "Log"
         "Common.ClearLog" = "Wyczyść log"
         "Common.CopyLog" = "Kopiuj log"
         "Log.Events" = "Log zdarzeń"
         "AccountProperties.Get" = "Pobierz właściwości"
         "AccountProperties.Info" = "Pokazuje atrybuty LDAP konta, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADUser -Properties *."
+        "AccountProperties.CopyValues" = "Kopiuj wartości"
         "AccountProperties.CountEmpty" = "Właściwości: -"
         "AccountProperties.Count" = "Właściwości: {0}"
+        "AccountProperties.CountFiltered" = "Właściwości: {0} z {1}"
         "AccountGroups.Get" = "Pobierz grupy"
         "AccountGroups.Info" = "Pokazuje grupy domenowe konta: memberOf oraz primaryGroupID, bez RSAT."
         "Groups.CountEmpty" = "Grupy: -"
         "Groups.Count" = "Grupy: {0}"
+        "Groups.CountFiltered" = "Grupy: {0} z {1}"
         "GroupMembers.Group" = "Grupa:"
         "GroupMembers.Get" = "Pobierz członków"
         "GroupMembers.Info" = "Pokazuje bezpośrednich członków grupy domenowej z atrybutu member. Grupy zagnieżdżone są pokazane jako obiekty grupowe, bez rozwijania rekurencyjnego."
         "GroupMembers.CountEmpty" = "Członkowie: -"
         "GroupMembers.Count" = "Członkowie: {0}"
+        "GroupMembers.CountFiltered" = "Członkowie: {0} z {1}"
         "ManagedGroups.Get" = "Pobierz grupy"
         "ManagedGroups.Info" = "Pokazuje grupy domenowe zarządzane przez konto z pola Login konta, na podstawie atrybutu managedBy."
         "ManagerAccounts.Get" = "Pobierz konta"
@@ -2157,6 +2169,18 @@ $script:Translations = @{
         "Export.FileNameBase" = "zarzadzane_konta"
         "Export.NoDataPart" = "brak"
         "Export.SaveTitle" = "Zapisz zarządzane konta"
+        "Export.AccountPropertiesSheetName" = "Właściwości konta"
+        "Export.AccountPropertiesFileNameBase" = "wlasciwosci_konta"
+        "Export.AccountPropertiesSaveTitle" = "Zapisz właściwości konta"
+        "Export.AccountGroupsSheetName" = "Grupy konta"
+        "Export.AccountGroupsFileNameBase" = "grupy_konta"
+        "Export.AccountGroupsSaveTitle" = "Zapisz grupy konta"
+        "Export.GroupMembersSheetName" = "Członkowie grupy"
+        "Export.GroupMembersFileNameBase" = "czlonkowie_grupy"
+        "Export.GroupMembersSaveTitle" = "Zapisz członków grupy"
+        "Export.ManagedGroupsSheetName" = "Zarządzane grupy"
+        "Export.ManagedGroupsFileNameBase" = "zarzadzane_grupy"
+        "Export.ManagedGroupsSaveTitle" = "Zapisz zarządzane grupy"
         "Export.CsvFilter" = "CSV rozdzielany średnikiem (*.csv)|*.csv|Wszystkie pliki (*.*)|*.*"
         "Export.XlsxFilter" = "Excel Workbook (*.xlsx)|*.xlsx|Wszystkie pliki (*.*)|*.*"
         "Dialog.NoData" = "Brak danych"
@@ -2166,6 +2190,7 @@ $script:Translations = @{
         "Status.FilterHasNoAccounts" = "Bieżący filtr nie zawiera żadnych kont do eksportu."
         "Status.ExportCancelled" = "Eksport anulowany."
         "Status.Exporting" = "Eksportuję {0} kont do {1}..."
+        "Status.ExportingRows" = "Eksportuję {0} rekordów do {1}..."
         "Status.ExportReady" = "OK - eksport gotowy: {0}"
         "Status.ExportCompleted" = "Eksport zakończony.`r`n`r`nPlik:`r`n{0}"
         "Status.ExportCompletedTitle" = "Eksport gotowy"
@@ -2174,6 +2199,8 @@ $script:Translations = @{
         "Status.ExportErrorTitle" = "Błąd eksportu"
         "Status.SelectRow" = "Zaznacz co najmniej jeden wiersz."
         "Status.LoginsCopied" = "Skopiowano loginów do schowka: {0}"
+        "Status.NamesCopied" = "Skopiowano nazw do schowka: {0}"
+        "Status.ValuesCopied" = "Skopiowano wartości atrybutów do schowka: {0}."
         "Status.ClipboardFailed" = "Nie udało się skopiować do schowka: {0}"
         "Status.ReadyShort" = "Gotowy."
         "Status.Ready" = "Gotowy. Podaj domenę/DC i login."
@@ -2202,6 +2229,10 @@ $script:Translations = @{
         "Status.AccountPropertiesReceived" = "OK - pobrano właściwości: {0}."
         "Status.AccountPropertiesError" = "Błąd pobierania właściwości konta: {0}"
         "Status.AccountPropertiesCleared" = "Właściwości konta wyczyszczone."
+        "Status.AccountPropertiesSearch" = "Wyszukiwanie atrybutu: '{0}' - pokazano {1} z {2} właściwości."
+        "Status.GetAccountPropertiesFirst" = "Najpierw pobierz właściwości konta."
+        "Status.NoAccountPropertiesToExport" = "Brak właściwości konta do eksportu."
+        "Status.NoVisibleAccountProperties" = "Wyszukiwanie nie zawiera żadnych właściwości do eksportu."
         "Status.SelectProperties" = "Zaznacz właściwości do skopiowania."
         "Status.PropertiesCopied" = "Skopiowano zaznaczone właściwości: {0}."
         "Status.PropertiesCopyFailed" = "Nie udało się skopiować właściwości: {0}"
@@ -2212,6 +2243,10 @@ $script:Translations = @{
         "Status.AccountGroupsReceived" = "OK - pobrano grupy konta: {0}."
         "Status.AccountGroupsError" = "Błąd pobierania grup konta: {0}"
         "Status.AccountGroupsCleared" = "Lista grup konta wyczyszczona."
+        "Status.AccountGroupsSearch" = "Wyszukiwanie: '{0}' - pokazano {1} z {2} grup konta."
+        "Status.GetAccountGroupsFirst" = "Najpierw pobierz grupy konta."
+        "Status.NoAccountGroupsToExport" = "Brak grup konta do eksportu."
+        "Status.NoVisibleAccountGroups" = "Wyszukiwanie nie zawiera żadnych grup konta do eksportu."
         "Status.SelectGroups" = "Zaznacz grupy do skopiowania."
         "Status.GroupsCopied" = "Skopiowano zaznaczone grupy: {0}."
         "Status.GroupsCopyFailed" = "Nie udało się skopiować grup: {0}"
@@ -2224,17 +2259,20 @@ $script:Translations = @{
         "Status.GroupMembersReceived" = "OK - pobrano członków grupy: {0}."
         "Status.GroupMembersError" = "Błąd pobierania członków grupy: {0}"
         "Status.GroupMembersCleared" = "Lista członków grupy wyczyszczona."
-        "Status.SelectGroupMembers" = "Zaznacz członków grupy do skopiowania."
-        "Status.GroupMembersCopied" = "Skopiowano zaznaczonych członków grupy: {0}."
-        "Status.GroupMembersCopyFailed" = "Nie udało się skopiować członków grupy: {0}"
-        "Status.NoGroupMembersToCopy" = "Brak członków grupy do skopiowania."
-        "Status.AllGroupMembersCopied" = "Skopiowano wszystkich członków grupy: {0}."
+        "Status.GroupMembersSearch" = "Wyszukiwanie: '{0}' - pokazano {1} z {2} członków grupy."
+        "Status.GetGroupMembersFirst" = "Najpierw pobierz członków grupy."
+        "Status.NoGroupMembersToExport" = "Brak członków grupy do eksportu."
+        "Status.NoVisibleGroupMembers" = "Wyszukiwanie nie zawiera żadnych członków grupy do eksportu."
         "Status.EnterManager" = "Podaj domenę/DC i login konta zarządzającego."
         "Status.GettingManagedGroups" = "Pobieram grupy zarządzane przez {0}\{1}..."
         "Status.NoManagedGroups" = "OK - nie znaleziono grup zarządzanych przez {0}\{1}."
         "Status.ManagedGroupsReceived" = "OK - znaleziono zarządzane grupy: {0}."
         "Status.ManagedGroupsError" = "Błąd pobierania zarządzanych grup: {0}"
         "Status.ManagedGroupsCleared" = "Lista zarządzanych grup wyczyszczona."
+        "Status.ManagedGroupsSearch" = "Wyszukiwanie: '{0}' - pokazano {1} z {2} zarządzanych grup."
+        "Status.GetManagedGroupsFirst" = "Najpierw pobierz zarządzane grupy."
+        "Status.NoManagedGroupsToExport" = "Brak zarządzanych grup do eksportu."
+        "Status.NoVisibleManagedGroups" = "Wyszukiwanie nie zawiera żadnych zarządzanych grup do eksportu."
         "Status.SelectManagedGroups" = "Zaznacz zarządzane grupy do skopiowania."
         "Status.ManagedGroupsCopied" = "Skopiowano zaznaczone zarządzane grupy: {0}."
         "Status.ManagedGroupsCopyFailed" = "Nie udało się skopiować zarządzanych grup: {0}"
@@ -2273,6 +2311,7 @@ $script:Translations = @{
         "Error.ManagerNotFound" = "Specified account not found: {0}\{1}"
         "Error.GroupNotFound" = "Group not found: {0}\{1}"
         "Error.ExportNoAccounts" = "There are no accounts to export."
+        "Error.ExportNoRows" = "There are no rows to export."
         "Error.ExcelColumn" = "Invalid Excel column number: {0}"
         "Value.Never" = "Never"
         "Value.UnknownObject" = "Could not retrieve the object by DN"
@@ -2317,25 +2356,32 @@ $script:Translations = @{
         "Change.Hint" = "Password change without UserPrincipal.ChangePassword(): LDAP unicodePwd DELETE old + ADD new."
         "Common.Exit" = "Exit"
         "Common.Clear" = "Clear"
-        "Common.CopySelected" = "Copy selected"
-        "Common.CopyAll" = "Copy all"
+        "Common.ExportCsv" = "Export CSV"
+        "Common.ExportXlsx" = "Export XLSX"
+        "Common.CopyNames" = "Copy names"
+        "Common.Search" = "Search:"
+        "Common.ExportVisibleInfo" = "The export includes the currently visible rows."
         "Common.Log" = "Log"
         "Common.ClearLog" = "Clear log"
         "Common.CopyLog" = "Copy log"
         "Log.Events" = "Event log"
         "AccountProperties.Get" = "Get properties"
         "AccountProperties.Info" = "Displays LDAP account attributes without RSAT, similar to Get-ADUser -Properties *."
+        "AccountProperties.CopyValues" = "Copy values"
         "AccountProperties.CountEmpty" = "Properties: -"
         "AccountProperties.Count" = "Properties: {0}"
+        "AccountProperties.CountFiltered" = "Properties: {0} of {1}"
         "AccountGroups.Get" = "Get groups"
         "AccountGroups.Info" = "Displays account domain groups from memberOf and primaryGroupID without RSAT."
         "Groups.CountEmpty" = "Groups: -"
         "Groups.Count" = "Groups: {0}"
+        "Groups.CountFiltered" = "Groups: {0} of {1}"
         "GroupMembers.Group" = "Group:"
         "GroupMembers.Get" = "Get members"
         "GroupMembers.Info" = "Displays direct members from the domain group's member attribute. Nested groups are shown as group objects and are not expanded recursively."
         "GroupMembers.CountEmpty" = "Members: -"
         "GroupMembers.Count" = "Members: {0}"
+        "GroupMembers.CountFiltered" = "Members: {0} of {1}"
         "ManagedGroups.Get" = "Get groups"
         "ManagedGroups.Info" = "Displays domain groups managed by the account entered in Account login, based on the managedBy attribute."
         "ManagerAccounts.Get" = "Get accounts"
@@ -2368,6 +2414,18 @@ $script:Translations = @{
         "Export.FileNameBase" = "managed_accounts"
         "Export.NoDataPart" = "none"
         "Export.SaveTitle" = "Save managed accounts"
+        "Export.AccountPropertiesSheetName" = "Account properties"
+        "Export.AccountPropertiesFileNameBase" = "account_properties"
+        "Export.AccountPropertiesSaveTitle" = "Save account properties"
+        "Export.AccountGroupsSheetName" = "Account groups"
+        "Export.AccountGroupsFileNameBase" = "account_groups"
+        "Export.AccountGroupsSaveTitle" = "Save account groups"
+        "Export.GroupMembersSheetName" = "Group members"
+        "Export.GroupMembersFileNameBase" = "group_members"
+        "Export.GroupMembersSaveTitle" = "Save group members"
+        "Export.ManagedGroupsSheetName" = "Managed groups"
+        "Export.ManagedGroupsFileNameBase" = "managed_groups"
+        "Export.ManagedGroupsSaveTitle" = "Save managed groups"
         "Export.CsvFilter" = "Semicolon-delimited CSV (*.csv)|*.csv|All files (*.*)|*.*"
         "Export.XlsxFilter" = "Excel Workbook (*.xlsx)|*.xlsx|All files (*.*)|*.*"
         "Dialog.NoData" = "No data"
@@ -2377,6 +2435,7 @@ $script:Translations = @{
         "Status.FilterHasNoAccounts" = "The current filter contains no accounts to export."
         "Status.ExportCancelled" = "Export cancelled."
         "Status.Exporting" = "Exporting {0} accounts to {1}..."
+        "Status.ExportingRows" = "Exporting {0} rows to {1}..."
         "Status.ExportReady" = "OK - export ready: {0}"
         "Status.ExportCompleted" = "Export completed.`r`n`r`nFile:`r`n{0}"
         "Status.ExportCompletedTitle" = "Export ready"
@@ -2385,6 +2444,8 @@ $script:Translations = @{
         "Status.ExportErrorTitle" = "Export error"
         "Status.SelectRow" = "Select at least one row."
         "Status.LoginsCopied" = "Logins copied to the clipboard: {0}"
+        "Status.NamesCopied" = "Names copied to the clipboard: {0}"
+        "Status.ValuesCopied" = "Attribute values copied to the clipboard: {0}."
         "Status.ClipboardFailed" = "Could not copy to the clipboard: {0}"
         "Status.ReadyShort" = "Ready."
         "Status.Ready" = "Ready. Enter a domain/DC and login."
@@ -2413,6 +2474,10 @@ $script:Translations = @{
         "Status.AccountPropertiesReceived" = "OK - properties retrieved: {0}."
         "Status.AccountPropertiesError" = "Error retrieving account properties: {0}"
         "Status.AccountPropertiesCleared" = "Account properties cleared."
+        "Status.AccountPropertiesSearch" = "Attribute search: '{0}' - showing {1} of {2} properties."
+        "Status.GetAccountPropertiesFirst" = "Retrieve the account properties first."
+        "Status.NoAccountPropertiesToExport" = "There are no account properties to export."
+        "Status.NoVisibleAccountProperties" = "The search contains no account properties to export."
         "Status.SelectProperties" = "Select properties to copy."
         "Status.PropertiesCopied" = "Selected properties copied: {0}."
         "Status.PropertiesCopyFailed" = "Could not copy properties: {0}"
@@ -2423,6 +2488,10 @@ $script:Translations = @{
         "Status.AccountGroupsReceived" = "OK - account groups retrieved: {0}."
         "Status.AccountGroupsError" = "Error retrieving account groups: {0}"
         "Status.AccountGroupsCleared" = "Account group list cleared."
+        "Status.AccountGroupsSearch" = "Search: '{0}' - showing {1} of {2} account groups."
+        "Status.GetAccountGroupsFirst" = "Retrieve the account groups first."
+        "Status.NoAccountGroupsToExport" = "There are no account groups to export."
+        "Status.NoVisibleAccountGroups" = "The search contains no account groups to export."
         "Status.SelectGroups" = "Select groups to copy."
         "Status.GroupsCopied" = "Selected groups copied: {0}."
         "Status.GroupsCopyFailed" = "Could not copy groups: {0}"
@@ -2435,17 +2504,20 @@ $script:Translations = @{
         "Status.GroupMembersReceived" = "OK - group members retrieved: {0}."
         "Status.GroupMembersError" = "Error retrieving group members: {0}"
         "Status.GroupMembersCleared" = "Group member list cleared."
-        "Status.SelectGroupMembers" = "Select group members to copy."
-        "Status.GroupMembersCopied" = "Selected group members copied: {0}."
-        "Status.GroupMembersCopyFailed" = "Could not copy group members: {0}"
-        "Status.NoGroupMembersToCopy" = "There are no group members to copy."
-        "Status.AllGroupMembersCopied" = "All group members copied: {0}."
+        "Status.GroupMembersSearch" = "Search: '{0}' - showing {1} of {2} group members."
+        "Status.GetGroupMembersFirst" = "Retrieve group members first."
+        "Status.NoGroupMembersToExport" = "There are no group members to export."
+        "Status.NoVisibleGroupMembers" = "The search does not contain any group members to export."
         "Status.EnterManager" = "Enter the domain/DC and the managing account login."
         "Status.GettingManagedGroups" = "Retrieving groups managed by {0}\{1}..."
         "Status.NoManagedGroups" = "OK - no groups managed by {0}\{1} were found."
         "Status.ManagedGroupsReceived" = "OK - managed groups found: {0}."
         "Status.ManagedGroupsError" = "Error retrieving managed groups: {0}"
         "Status.ManagedGroupsCleared" = "Managed groups list cleared."
+        "Status.ManagedGroupsSearch" = "Search: '{0}' - showing {1} of {2} managed groups."
+        "Status.GetManagedGroupsFirst" = "Retrieve the managed groups first."
+        "Status.NoManagedGroupsToExport" = "There are no managed groups to export."
+        "Status.NoVisibleManagedGroups" = "The search contains no managed groups to export."
         "Status.SelectManagedGroups" = "Select managed groups to copy."
         "Status.ManagedGroupsCopied" = "Selected managed groups copied: {0}."
         "Status.ManagedGroupsCopyFailed" = "Could not copy managed groups: {0}"
@@ -4586,6 +4658,59 @@ function Convert-ManagedRowsToExportRows {
     return $exportRows
 }
 
+function Convert-AccountPropertyRowsToExportRows {
+    param([object[]]$Rows)
+
+    $exportRows = @()
+    foreach ($row in @($Rows)) {
+        if ($null -eq $row) { continue }
+        $exportRow = [ordered]@{}
+        $exportRow[(Get-UiText "Column.Attribute")] = [string]$row.Attribute
+        $exportRow[(Get-UiText "Column.Value")] = [string]$row.Value
+        $exportRow[(Get-UiText "Column.Count")] = [string]$row.Count
+        $exportRows += [PSCustomObject]$exportRow
+    }
+    return $exportRows
+}
+
+function Convert-GroupRowsToExportRows {
+    param([object[]]$Rows)
+
+    $exportRows = @()
+    foreach ($row in @($Rows)) {
+        if ($null -eq $row) { continue }
+        $exportRow = [ordered]@{}
+        $exportRow[(Get-UiText "Column.Name")] = [string]$row.Name
+        $exportRow[(Get-UiText "Column.GroupLogin")] = [string]$row.SamAccountName
+        $exportRow[(Get-UiText "Column.DisplayName")] = [string]$row.DisplayName
+        $exportRow[(Get-UiText "Column.Type")] = [string]$row.Type
+        $exportRow[(Get-UiText "Column.Scope")] = [string]$row.Scope
+        $exportRow[(Get-UiText "Column.Source")] = [string]$row.Source
+        $exportRow[(Get-UiText "Column.Description")] = [string]$row.Description
+        $exportRows += [PSCustomObject]$exportRow
+    }
+    return $exportRows
+}
+
+function Convert-GroupMemberRowsToExportRows {
+    param([object[]]$Rows)
+
+    $exportRows = @()
+    foreach ($row in @($Rows)) {
+        if ($null -eq $row) { continue }
+        $exportRow = [ordered]@{}
+        $exportRow[(Get-UiText "Column.Name")] = [string]$row.Name
+        $exportRow[(Get-UiText "Column.Login")] = [string]$row.SamAccountName
+        $exportRow[(Get-UiText "Column.DisplayName")] = [string]$row.DisplayName
+        $exportRow[(Get-UiText "Column.Type")] = [string]$row.ObjectType
+        $exportRow[(Get-UiText "Column.Enabled")] = [string]$row.Enabled
+        $exportRow["UPN"] = [string]$row.UserPrincipalName
+        $exportRow[(Get-UiText "Column.Description")] = [string]$row.Description
+        $exportRows += [PSCustomObject]$exportRow
+    }
+    return $exportRows
+}
+
 function Get-SafeFileNamePart {
     param([string]$Text)
 
@@ -4602,6 +4727,14 @@ function Export-ManagedAccountsToCsv {
 
     $exportRows = @(Convert-ManagedRowsToExportRows -Rows $Rows)
     if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoAccounts") }
+    $exportRows | Export-Csv -Path $Path -NoTypeInformation -Delimiter ";" -Encoding UTF8 -Force
+}
+
+function Export-TabularRowsToCsv {
+    param([object[]]$Rows, [string]$Path)
+
+    $exportRows = @($Rows)
+    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoRows") }
     $exportRows | Export-Csv -Path $Path -NoTypeInformation -Delimiter ";" -Encoding UTF8 -Force
 }
 
@@ -4652,22 +4785,21 @@ function Write-Utf8NoBomFile {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
-function Export-ManagedAccountsToXlsx {
-    param([object[]]$Rows, [string]$Path)
-
-    $exportRows = @(Convert-ManagedRowsToExportRows -Rows $Rows)
-    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoAccounts") }
-
-    $headers = @(
-        (Get-UiText "Column.Login"),
-        (Get-UiText "Column.Name"),
-        (Get-UiText "Column.DisplayName"),
-        (Get-UiText "Column.Enabled"),
-        "UPN",
-        (Get-UiText "Column.Description"),
-        (Get-UiText "Column.PasswordLastSet")
+function Export-TabularRowsToXlsx {
+    param(
+        [object[]]$Rows,
+        [string]$Path,
+        [string]$SheetName,
+        [int[]]$Widths
     )
-    $widths = @(18, 24, 28, 12, 34, 42, 22)
+
+    $exportRows = @($Rows)
+    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoRows") }
+
+    $headers = @($exportRows[0].PSObject.Properties | ForEach-Object { $_.Name })
+    if ($null -eq $Widths -or $Widths.Count -ne $headers.Count) {
+        $Widths = @(for ($i = 0; $i -lt $headers.Count; $i++) { 24 })
+    }
     $lastColumnName = Convert-ToExcelColumnName -ColumnNumber $headers.Count
     $lastRow = $exportRows.Count + 1
     $sheetRef = "A1:$lastColumnName$lastRow"
@@ -4680,7 +4812,7 @@ function Export-ManagedAccountsToXlsx {
         }
 
         $nowUtc = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
-        $sheetName = Convert-ToXmlText -Value (Get-UiText "Export.SheetName")
+        $sheetNameXml = Convert-ToXmlText -Value $SheetName
 
         Write-Utf8NoBomFile -Path (Join-Path $tmp "[Content_Types].xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -4724,7 +4856,7 @@ function Export-ManagedAccountsToXlsx {
         Write-Utf8NoBomFile -Path (Join-Path $tmp "xl\workbook.xml") -Content @"
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-  <sheets><sheet name="$sheetName" sheetId="1" r:id="rId1"/></sheets>
+  <sheets><sheet name="$sheetNameXml" sheetId="1" r:id="rId1"/></sheets>
 </workbook>
 "@
 
@@ -4750,9 +4882,9 @@ function Export-ManagedAccountsToXlsx {
 
         $colsXml = New-Object System.Text.StringBuilder
         [void]$colsXml.AppendLine("  <cols>")
-        for ($i = 0; $i -lt $widths.Count; $i++) {
+        for ($i = 0; $i -lt $Widths.Count; $i++) {
             $colNum = $i + 1
-            [void]$colsXml.AppendLine("    <col min=`"$colNum`" max=`"$colNum`" width=`"$($widths[$i])`" customWidth=`"1`"/>")
+            [void]$colsXml.AppendLine("    <col min=`"$colNum`" max=`"$colNum`" width=`"$($Widths[$i])`" customWidth=`"1`"/>")
         }
         [void]$colsXml.AppendLine("  </cols>")
 
@@ -4795,6 +4927,18 @@ $($colsXml.ToString())$($sheetData.ToString())  <autoFilter ref="$sheetRef"/>
     finally {
         if (Test-Path -LiteralPath $tmp) { Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue }
     }
+}
+
+function Export-ManagedAccountsToXlsx {
+    param([object[]]$Rows, [string]$Path)
+
+    $exportRows = @(Convert-ManagedRowsToExportRows -Rows $Rows)
+    if ($exportRows.Count -eq 0) { throw (Get-UiText "Error.ExportNoAccounts") }
+    Export-TabularRowsToXlsx `
+        -Rows $exportRows `
+        -Path $Path `
+        -SheetName (Get-UiText "Export.SheetName") `
+        -Widths @(18, 24, 28, 12, 34, 42, 22)
 }
 
 # ==================================================
@@ -4958,6 +5102,59 @@ function Export-ManagedAccountsWithDialog {
         Set-Status (Get-UiText "Status.Exporting" @($rowsToExport.Count, $Format)) "Info"
         if ($Format -eq "CSV") { Export-ManagedAccountsToCsv -Rows $rowsToExport -Path $dialog.FileName }
         else { Export-ManagedAccountsToXlsx -Rows $rowsToExport -Path $dialog.FileName }
+        Set-Status (Get-UiText "Status.ExportReady" @($dialog.FileName)) "Ok"
+        Show-InfoBox (Get-UiText "Status.ExportCompleted" @($dialog.FileName)) (Get-UiText "Status.ExportCompletedTitle")
+    }
+    catch {
+        $msg = $_.Exception.Message
+        Set-Status (Get-UiText "Status.ExportError" @($msg)) "Error"
+        Show-ErrorBox (Get-UiText "Status.ExportFailed" @($msg)) (Get-UiText "Status.ExportErrorTitle")
+    }
+}
+
+function Export-VisibleRowsWithDialog {
+    param(
+        [ValidateSet("CSV", "XLSX")][string]$Format,
+        [object[]]$ExportRows,
+        [string]$FileNameBase,
+        [string]$SheetName,
+        [string]$SaveTitle,
+        [int[]]$Widths
+    )
+
+    $domainPart = Get-SafeFileNamePart -Text $txtDomain.Text
+    $loginPart = Get-SafeFileNamePart -Text $txtLogin.Text
+    $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    $extension = $Format.ToLowerInvariant()
+    $defaultName = "${FileNameBase}_${domainPart}_${loginPart}_${stamp}.${extension}"
+
+    $dialog = New-Object System.Windows.Forms.SaveFileDialog
+    $dialog.Title = $SaveTitle
+    $dialog.FileName = $defaultName
+    $dialog.OverwritePrompt = $true
+
+    if ($Format -eq "CSV") {
+        $dialog.Filter = Get-UiText "Export.CsvFilter"
+        $dialog.DefaultExt = "csv"
+    }
+    else {
+        $dialog.Filter = Get-UiText "Export.XlsxFilter"
+        $dialog.DefaultExt = "xlsx"
+    }
+
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) {
+        Set-Status (Get-UiText "Status.ExportCancelled") "Info"
+        return
+    }
+
+    try {
+        Set-Status (Get-UiText "Status.ExportingRows" @(@($ExportRows).Count, $Format)) "Info"
+        if ($Format -eq "CSV") {
+            Export-TabularRowsToCsv -Rows $ExportRows -Path $dialog.FileName
+        }
+        else {
+            Export-TabularRowsToXlsx -Rows $ExportRows -Path $dialog.FileName -SheetName $SheetName -Widths $Widths
+        }
         Set-Status (Get-UiText "Status.ExportReady" @($dialog.FileName)) "Ok"
         Show-InfoBox (Get-UiText "Status.ExportCompleted" @($dialog.FileName)) (Get-UiText "Status.ExportCompletedTitle")
     }
@@ -5306,22 +5503,26 @@ $tabLog.Controls.Add($grpLogGlobal)
 # ---- Account properties tab ----
 $accountPropsTop = New-Object System.Windows.Forms.Panel
 $accountPropsTop.Dock = [System.Windows.Forms.DockStyle]::Top
-$accountPropsTop.Height = 90
+$accountPropsTop.Height = 92
 $accountPropsTop.BackColor = $script:Theme.Back
 
 $btnGetAccountProps = New-FlatButton (Get-UiText "AccountProperties.Get") 18 16 160 34
 $btnClearAccountProps = New-SoftButton (Get-UiText "Common.Clear") 188 16 95 34
-$btnCopyAccountProps = New-SoftButton (Get-UiText "Common.CopySelected") 293 16 140 34
-$btnCopyAllAccountProps = New-SoftButton (Get-UiText "Common.CopyAll") 443 16 130 34
+$btnExportAccountPropsCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 293 16 112 34
+$btnExportAccountPropsXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 415 16 118 34
+$btnCopyAccountPropertyValues = New-SoftButton (Get-UiText "AccountProperties.CopyValues") 543 16 130 34
 
-$lblAccountPropsInfo = New-Label (Get-UiText "AccountProperties.Info") 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblAccountPropsSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtAccountPropsSearch = New-TextBoxEx 73 57 250 $false
+
+$lblAccountPropsInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblAccountPropsInfo.ForeColor = $script:Theme.Muted
 
-$lblAccountPropsCount = New-Label (Get-UiText "AccountProperties.CountEmpty") 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblAccountPropsCount = New-Label (Get-UiText "AccountProperties.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblAccountPropsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblAccountPropsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
-$accountPropsTop.Controls.AddRange(@($btnGetAccountProps, $btnClearAccountProps, $btnCopyAccountProps, $btnCopyAllAccountProps, $lblAccountPropsInfo, $lblAccountPropsCount))
+$accountPropsTop.Controls.AddRange(@($btnGetAccountProps, $btnClearAccountProps, $btnExportAccountPropsCsv, $btnExportAccountPropsXlsx, $btnCopyAccountPropertyValues, $lblAccountPropsSearch, $txtAccountPropsSearch, $lblAccountPropsInfo, $lblAccountPropsCount))
 
 $gridAccountProps = New-Object System.Windows.Forms.DataGridView
 $gridAccountProps.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -5362,22 +5563,26 @@ $tabAccountProps.Controls.Add($accountPropsTop)
 # ---- Account groups tab ----
 $accountGroupsTop = New-Object System.Windows.Forms.Panel
 $accountGroupsTop.Dock = [System.Windows.Forms.DockStyle]::Top
-$accountGroupsTop.Height = 90
+$accountGroupsTop.Height = 92
 $accountGroupsTop.BackColor = $script:Theme.Back
 
 $btnGetAccountGroups = New-FlatButton (Get-UiText "AccountGroups.Get") 18 16 135 34
 $btnClearAccountGroups = New-SoftButton (Get-UiText "Common.Clear") 163 16 95 34
-$btnCopyAccountGroups = New-SoftButton (Get-UiText "Common.CopySelected") 268 16 140 34
-$btnCopyAllAccountGroups = New-SoftButton (Get-UiText "Common.CopyAll") 418 16 130 34
+$btnExportAccountGroupsCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 268 16 112 34
+$btnExportAccountGroupsXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 390 16 118 34
+$btnCopyAccountGroupNames = New-SoftButton (Get-UiText "Common.CopyNames") 518 16 130 34
 
-$lblAccountGroupsInfo = New-Label (Get-UiText "AccountGroups.Info") 18 58 720 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblAccountGroupsSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtAccountGroupsSearch = New-TextBoxEx 73 57 250 $false
+
+$lblAccountGroupsInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblAccountGroupsInfo.ForeColor = $script:Theme.Muted
 
-$lblAccountGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 760 22 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblAccountGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblAccountGroupsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblAccountGroupsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
-$accountGroupsTop.Controls.AddRange(@($btnGetAccountGroups, $btnClearAccountGroups, $btnCopyAccountGroups, $btnCopyAllAccountGroups, $lblAccountGroupsInfo, $lblAccountGroupsCount))
+$accountGroupsTop.Controls.AddRange(@($btnGetAccountGroups, $btnClearAccountGroups, $btnExportAccountGroupsCsv, $btnExportAccountGroupsXlsx, $btnCopyAccountGroupNames, $lblAccountGroupsSearch, $txtAccountGroupsSearch, $lblAccountGroupsInfo, $lblAccountGroupsCount))
 
 $gridAccountGroups = New-Object System.Windows.Forms.DataGridView
 $gridAccountGroups.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -5421,25 +5626,29 @@ $tabAccountGroups.Controls.Add($accountGroupsTop)
 # ---- Group members tab ----
 $groupMembersTop = New-Object System.Windows.Forms.Panel
 $groupMembersTop.Dock = [System.Windows.Forms.DockStyle]::Top
-$groupMembersTop.Height = 118
+$groupMembersTop.Height = 130
 $groupMembersTop.BackColor = $script:Theme.Back
 
 $lblGroupMembersGroup = New-Label (Get-UiText "GroupMembers.Group") 18 18 80 24
 $txtGroupMembersGroup = New-TextBoxEx 105 15 330 $false
 
-$btnGetGroupMembers = New-FlatButton (Get-UiText "GroupMembers.Get") 455 14 150 34
-$btnClearGroupMembers = New-SoftButton (Get-UiText "Common.Clear") 615 14 95 34
-$btnCopyGroupMembers = New-SoftButton (Get-UiText "Common.CopySelected") 720 14 140 34
-$btnCopyAllGroupMembers = New-SoftButton (Get-UiText "Common.CopyAll") 870 14 130 34
+$btnGetGroupMembers = New-FlatButton (Get-UiText "GroupMembers.Get") 18 55 150 34
+$btnClearGroupMembers = New-SoftButton (Get-UiText "Common.Clear") 178 55 95 34
+$btnExportGroupMembersCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 283 55 112 34
+$btnExportGroupMembersXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 405 55 118 34
+$btnCopyGroupMemberNames = New-SoftButton (Get-UiText "Common.CopyNames") 533 55 130 34
 
-$lblGroupMembersInfo = New-Label (Get-UiText "GroupMembers.Info") 18 58 960 42 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblGroupMembersSearch = New-Label (Get-UiText "Common.Search") 18 101 55 22
+$txtGroupMembersSearch = New-TextBoxEx 73 98 250 $false
+
+$lblGroupMembersInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 99 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblGroupMembersInfo.ForeColor = $script:Theme.Muted
 
-$lblGroupMembersCount = New-Label (Get-UiText "GroupMembers.CountEmpty") 760 90 300 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblGroupMembersCount = New-Label (Get-UiText "GroupMembers.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblGroupMembersCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblGroupMembersCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
-$groupMembersTop.Controls.AddRange(@($lblGroupMembersGroup, $txtGroupMembersGroup, $btnGetGroupMembers, $btnClearGroupMembers, $btnCopyGroupMembers, $btnCopyAllGroupMembers, $lblGroupMembersInfo, $lblGroupMembersCount))
+$groupMembersTop.Controls.AddRange(@($lblGroupMembersGroup, $txtGroupMembersGroup, $btnGetGroupMembers, $btnClearGroupMembers, $btnExportGroupMembersCsv, $btnExportGroupMembersXlsx, $btnCopyGroupMemberNames, $lblGroupMembersSearch, $txtGroupMembersSearch, $lblGroupMembersInfo, $lblGroupMembersCount))
 
 $gridGroupMembers = New-Object System.Windows.Forms.DataGridView
 $gridGroupMembers.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -5483,22 +5692,26 @@ $tabGroupMembers.Controls.Add($groupMembersTop)
 # ---- Managed groups tab ----
 $managedGroupsTop = New-Object System.Windows.Forms.Panel
 $managedGroupsTop.Dock = [System.Windows.Forms.DockStyle]::Top
-$managedGroupsTop.Height = 90
+$managedGroupsTop.Height = 92
 $managedGroupsTop.BackColor = $script:Theme.Back
 
 $btnGetManagedGroups = New-FlatButton (Get-UiText "ManagedGroups.Get") 18 16 135 34
 $btnClearManagedGroups = New-SoftButton (Get-UiText "Common.Clear") 163 16 95 34
-$btnCopyManagedGroups = New-SoftButton (Get-UiText "Common.CopySelected") 268 16 140 34
-$btnCopyAllManagedGroups = New-SoftButton (Get-UiText "Common.CopyAll") 418 16 130 34
+$btnExportManagedGroupsCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 268 16 112 34
+$btnExportManagedGroupsXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 390 16 118 34
+$btnCopyManagedGroupNames = New-SoftButton (Get-UiText "Common.CopyNames") 518 16 130 34
 
-$lblManagedGroupsInfo = New-Label (Get-UiText "ManagedGroups.Info") 18 58 820 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblManagedGroupsSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtManagedGroupsSearch = New-TextBoxEx 73 57 250 $false
+
+$lblManagedGroupsInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblManagedGroupsInfo.ForeColor = $script:Theme.Muted
 
-$lblManagedGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 860 22 220 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblManagedGroupsCount = New-Label (Get-UiText "Groups.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblManagedGroupsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblManagedGroupsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
-$managedGroupsTop.Controls.AddRange(@($btnGetManagedGroups, $btnClearManagedGroups, $btnCopyManagedGroups, $btnCopyAllManagedGroups, $lblManagedGroupsInfo, $lblManagedGroupsCount))
+$managedGroupsTop.Controls.AddRange(@($btnGetManagedGroups, $btnClearManagedGroups, $btnExportManagedGroupsCsv, $btnExportManagedGroupsXlsx, $btnCopyManagedGroupNames, $lblManagedGroupsSearch, $txtManagedGroupsSearch, $lblManagedGroupsInfo, $lblManagedGroupsCount))
 
 $gridManagedGroups = New-Object System.Windows.Forms.DataGridView
 $gridManagedGroups.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -5634,7 +5847,6 @@ function Set-AccountPropertiesGrid {
                 )
             }
         }
-        $lblAccountPropsCount.Text = Get-UiText "AccountProperties.Count" @(@($Rows).Count)
         $gridAccountProps.ClearSelection()
     }
     finally {
@@ -5642,31 +5854,100 @@ function Set-AccountPropertiesGrid {
     }
 }
 
-function Convert-AccountPropertyRowsToClipboardText {
+function Filter-AccountPropertyRows {
     param([object[]]$Rows)
 
-    $lines = @()
-    foreach ($row in @($Rows)) {
-        if ($null -eq $row) { continue }
-        $lines += ("{0}`t{1}`t{2}" -f [string]$row.Attribute, [string]$row.Value, [string]$row.Count)
-    }
-    return ($lines -join [Environment]::NewLine)
+    if ($null -eq $Rows) { return @() }
+    $query = ""
+    try { $query = $txtAccountPropsSearch.Text.Trim() } catch { }
+    if (Is-Blank $query) { return @($Rows) }
+
+    $q = $query.ToLowerInvariant()
+    return @($Rows | Where-Object {
+        ([string]$_.Attribute).ToLowerInvariant().Contains($q)
+    })
 }
 
-function Get-SelectedAccountPropertyRows {
-    $rows = @()
-    try {
-        foreach ($gridRow in $gridAccountProps.SelectedRows) {
-            if ($null -eq $gridRow -or $gridRow.IsNewRow) { continue }
-            $rows += [PSCustomObject]@{
-                Attribute = [string]$gridRow.Cells["Attribute"].Value
-                Value     = [string]$gridRow.Cells["Value"].Value
-                Count     = [int]$gridRow.Cells["Count"].Value
-            }
-        }
+function Refresh-AccountPropertiesGrid {
+    $filteredRows = @(Filter-AccountPropertyRows -Rows $script:AccountPropertyRows)
+    $totalCount = @($script:AccountPropertyRows).Count
+    Set-AccountPropertiesGrid -Rows $filteredRows
+
+    if (Is-Blank $txtAccountPropsSearch.Text) {
+        $lblAccountPropsCount.Text = Get-UiText "AccountProperties.Count" @($filteredRows.Count)
     }
-    catch { }
-    return @($rows | Sort-Object Attribute)
+    else {
+        $lblAccountPropsCount.Text = Get-UiText "AccountProperties.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-AccountPropertiesSearchView {
+    if (-not $script:AccountPropertyRowsLoaded) { return }
+    $visibleCount = Refresh-AccountPropertiesGrid
+    $totalCount = @($script:AccountPropertyRows).Count
+    Set-Status (Get-UiText "Status.AccountPropertiesSearch" @($txtAccountPropsSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleAccountPropertyRows {
+    if (-not $script:AccountPropertyRowsLoaded) { return @() }
+    return @(Filter-AccountPropertyRows -Rows $script:AccountPropertyRows)
+}
+
+function Copy-SelectedAccountPropertyValues {
+    try {
+        $selectedRows = @($gridAccountProps.SelectedRows | Where-Object {
+            $null -ne $_ -and -not $_.IsNewRow
+        } | Sort-Object -Property Index)
+
+        if ($selectedRows.Count -eq 0) {
+            Show-InfoBox (Get-UiText "Status.SelectRow") (Get-UiText "Dialog.NoSelection")
+            return
+        }
+
+        $values = @($selectedRows | ForEach-Object {
+            [string]$_.Cells["Value"].Value
+        })
+        $text = $values -join [Environment]::NewLine
+
+        if ($text.Length -eq 0) {
+            [System.Windows.Forms.Clipboard]::Clear()
+        }
+        else {
+            [System.Windows.Forms.Clipboard]::SetText($text)
+        }
+        Set-Status (Get-UiText "Status.ValuesCopied" @($values.Count)) "Ok"
+    }
+    catch {
+        Set-Status (Get-UiText "Status.ClipboardFailed" @($_.Exception.Message)) "Error"
+    }
+}
+
+function Export-AccountPropertiesWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:AccountPropertyRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetAccountPropertiesFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:AccountPropertyRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoAccountPropertiesToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleAccountPropertyRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleAccountProperties") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-AccountPropertyRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.AccountPropertiesFileNameBase") `
+        -SheetName (Get-UiText "Export.AccountPropertiesSheetName") `
+        -SaveTitle (Get-UiText "Export.AccountPropertiesSaveTitle") `
+        -Widths @(28, 80, 10)
 }
 
 function Set-AccountGroupsGrid {
@@ -5689,7 +5970,6 @@ function Set-AccountGroupsGrid {
                 )
             }
         }
-        $lblAccountGroupsCount.Text = Get-UiText "Groups.Count" @(@($Rows).Count)
         $gridAccountGroups.ClearSelection()
     }
     finally {
@@ -5697,44 +5977,102 @@ function Set-AccountGroupsGrid {
     }
 }
 
-function Convert-AccountGroupRowsToClipboardText {
-    param([object[]]$Rows)
+function Filter-GroupRows {
+    param([object[]]$Rows, [string]$Query)
 
-    $lines = @()
-    foreach ($row in @($Rows)) {
-        if ($null -eq $row) { continue }
-        $lines += ("{0}`t{1}`t{2}`t{3}`t{4}`t{5}`t{6}`t{7}" -f `
-            [string]$row.Name,
-            [string]$row.SamAccountName,
-            [string]$row.DisplayName,
-            [string]$row.Type,
-            [string]$row.Scope,
-            [string]$row.Source,
-            [string]$row.Description,
-            [string]$row.DistinguishedName)
-    }
-    return ($lines -join [Environment]::NewLine)
+    if ($null -eq $Rows) { return @() }
+    if (Is-Blank $Query) { return @($Rows) }
+
+    $q = $Query.Trim().ToLowerInvariant()
+    return @($Rows | Where-Object {
+        ([string]$_.Name).ToLowerInvariant().Contains($q) -or
+        ([string]$_.SamAccountName).ToLowerInvariant().Contains($q) -or
+        ([string]$_.DisplayName).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Type).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Scope).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Source).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Description).ToLowerInvariant().Contains($q)
+    })
 }
 
-function Get-SelectedAccountGroupRows {
-    $rows = @()
+function Refresh-AccountGroupsGrid {
+    $filteredRows = @(Filter-GroupRows -Rows $script:AccountGroupRows -Query $txtAccountGroupsSearch.Text)
+    $totalCount = @($script:AccountGroupRows).Count
+    Set-AccountGroupsGrid -Rows $filteredRows
+
+    if (Is-Blank $txtAccountGroupsSearch.Text) {
+        $lblAccountGroupsCount.Text = Get-UiText "Groups.Count" @($filteredRows.Count)
+    }
+    else {
+        $lblAccountGroupsCount.Text = Get-UiText "Groups.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-AccountGroupsSearchView {
+    if (-not $script:AccountGroupRowsLoaded) { return }
+    $visibleCount = Refresh-AccountGroupsGrid
+    $totalCount = @($script:AccountGroupRows).Count
+    Set-Status (Get-UiText "Status.AccountGroupsSearch" @($txtAccountGroupsSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleAccountGroupRows {
+    if (-not $script:AccountGroupRowsLoaded) { return @() }
+    return @(Filter-GroupRows -Rows $script:AccountGroupRows -Query $txtAccountGroupsSearch.Text)
+}
+
+function Copy-SelectedGroupNames {
+    param($Grid)
+
     try {
-        foreach ($gridRow in $gridAccountGroups.SelectedRows) {
-            if ($null -eq $gridRow -or $gridRow.IsNewRow) { continue }
-            $rows += [PSCustomObject]@{
-                Name              = [string]$gridRow.Cells["Name"].Value
-                SamAccountName    = [string]$gridRow.Cells["SamAccountName"].Value
-                DisplayName       = [string]$gridRow.Cells["DisplayName"].Value
-                Type              = [string]$gridRow.Cells["Type"].Value
-                Scope             = [string]$gridRow.Cells["Scope"].Value
-                Source            = [string]$gridRow.Cells["Source"].Value
-                Description       = [string]$gridRow.Cells["Description"].Value
-                DistinguishedName = [string]$gridRow.Cells["DistinguishedName"].Value
+        if ($Grid.SelectedRows.Count -eq 0) {
+            Show-InfoBox (Get-UiText "Status.SelectRow") (Get-UiText "Dialog.NoSelection")
+            return
+        }
+
+        $names = @()
+        foreach ($row in $Grid.SelectedRows) {
+            if ($null -ne $row.Cells["Name"].Value) {
+                $names += [string]$row.Cells["Name"].Value
             }
         }
+        $names = @($names | Sort-Object -Unique)
+        $text = $names -join [Environment]::NewLine
+        if (-not (Is-Blank $text)) {
+            [System.Windows.Forms.Clipboard]::SetText($text)
+            Set-Status (Get-UiText "Status.NamesCopied" @($names.Count)) "Ok"
+        }
     }
-    catch { }
-    return @($rows | Sort-Object -Property @("Name", "SamAccountName"))
+    catch {
+        Set-Status (Get-UiText "Status.ClipboardFailed" @($_.Exception.Message)) "Error"
+    }
+}
+
+function Export-AccountGroupsWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:AccountGroupRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetAccountGroupsFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:AccountGroupRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoAccountGroupsToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleAccountGroupRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleAccountGroups") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-GroupRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.AccountGroupsFileNameBase") `
+        -SheetName (Get-UiText "Export.AccountGroupsSheetName") `
+        -SaveTitle (Get-UiText "Export.AccountGroupsSaveTitle") `
+        -Widths @(28, 24, 28, 16, 16, 18, 42)
 }
 
 
@@ -5758,7 +6096,6 @@ function Set-ManagedGroupsGrid {
                 )
             }
         }
-        $lblManagedGroupsCount.Text = Get-UiText "Groups.Count" @(@($Rows).Count)
         $gridManagedGroups.ClearSelection()
     }
     finally {
@@ -5766,25 +6103,57 @@ function Set-ManagedGroupsGrid {
     }
 }
 
-function Get-SelectedManagedGroupRows {
-    $rows = @()
-    try {
-        foreach ($gridRow in $gridManagedGroups.SelectedRows) {
-            if ($null -eq $gridRow -or $gridRow.IsNewRow) { continue }
-            $rows += [PSCustomObject]@{
-                Name              = [string]$gridRow.Cells["Name"].Value
-                SamAccountName    = [string]$gridRow.Cells["SamAccountName"].Value
-                DisplayName       = [string]$gridRow.Cells["DisplayName"].Value
-                Type              = [string]$gridRow.Cells["Type"].Value
-                Scope             = [string]$gridRow.Cells["Scope"].Value
-                Source            = [string]$gridRow.Cells["Source"].Value
-                Description       = [string]$gridRow.Cells["Description"].Value
-                DistinguishedName = [string]$gridRow.Cells["DistinguishedName"].Value
-            }
-        }
+function Refresh-ManagedGroupsGrid {
+    $filteredRows = @(Filter-GroupRows -Rows $script:ManagedGroupRows -Query $txtManagedGroupsSearch.Text)
+    $totalCount = @($script:ManagedGroupRows).Count
+    Set-ManagedGroupsGrid -Rows $filteredRows
+
+    if (Is-Blank $txtManagedGroupsSearch.Text) {
+        $lblManagedGroupsCount.Text = Get-UiText "Groups.Count" @($filteredRows.Count)
     }
-    catch { }
-    return @($rows | Sort-Object -Property @("Name", "SamAccountName"))
+    else {
+        $lblManagedGroupsCount.Text = Get-UiText "Groups.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-ManagedGroupsSearchView {
+    if (-not $script:ManagedGroupRowsLoaded) { return }
+    $visibleCount = Refresh-ManagedGroupsGrid
+    $totalCount = @($script:ManagedGroupRows).Count
+    Set-Status (Get-UiText "Status.ManagedGroupsSearch" @($txtManagedGroupsSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleManagedGroupRows {
+    if (-not $script:ManagedGroupRowsLoaded) { return @() }
+    return @(Filter-GroupRows -Rows $script:ManagedGroupRows -Query $txtManagedGroupsSearch.Text)
+}
+
+function Export-ManagedGroupsWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:ManagedGroupRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetManagedGroupsFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:ManagedGroupRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoManagedGroupsToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleManagedGroupRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleManagedGroups") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-GroupRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.ManagedGroupsFileNameBase") `
+        -SheetName (Get-UiText "Export.ManagedGroupsSheetName") `
+        -SaveTitle (Get-UiText "Export.ManagedGroupsSaveTitle") `
+        -Widths @(28, 24, 28, 16, 16, 18, 42)
 }
 
 
@@ -5811,7 +6180,6 @@ function Set-DomainGroupMembersGrid {
                 )
             }
         }
-        $lblGroupMembersCount.Text = Get-UiText "GroupMembers.Count" @(@($Rows).Count)
         $gridGroupMembers.ClearSelection()
     }
     finally {
@@ -5819,44 +6187,75 @@ function Set-DomainGroupMembersGrid {
     }
 }
 
-function Convert-DomainGroupMemberRowsToClipboardText {
-    param([object[]]$Rows)
+function Filter-GroupMemberRows {
+    param([object[]]$Rows, [string]$Query)
 
-    $lines = @()
-    foreach ($row in @($Rows)) {
-        if ($null -eq $row) { continue }
-        $lines += ("{0}`t{1}`t{2}`t{3}`t{4}`t{5}`t{6}`t{7}" -f `
-            [string]$row.Name,
-            [string]$row.SamAccountName,
-            [string]$row.DisplayName,
-            [string]$row.ObjectType,
-            [string]$row.Enabled,
-            [string]$row.UserPrincipalName,
-            [string]$row.Description,
-            [string]$row.DistinguishedName)
-    }
-    return ($lines -join [Environment]::NewLine)
+    if ($null -eq $Rows) { return @() }
+    if (Is-Blank $Query) { return @($Rows) }
+
+    $q = $Query.Trim().ToLowerInvariant()
+    return @($Rows | Where-Object {
+        ([string]$_.Name).ToLowerInvariant().Contains($q) -or
+        ([string]$_.SamAccountName).ToLowerInvariant().Contains($q) -or
+        ([string]$_.DisplayName).ToLowerInvariant().Contains($q) -or
+        ([string]$_.ObjectType).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Enabled).ToLowerInvariant().Contains($q) -or
+        ([string]$_.UserPrincipalName).ToLowerInvariant().Contains($q) -or
+        ([string]$_.Description).ToLowerInvariant().Contains($q)
+    })
 }
 
-function Get-SelectedDomainGroupMemberRows {
-    $rows = @()
-    try {
-        foreach ($gridRow in $gridGroupMembers.SelectedRows) {
-            if ($null -eq $gridRow -or $gridRow.IsNewRow) { continue }
-            $rows += [PSCustomObject]@{
-                Name              = [string]$gridRow.Cells["Name"].Value
-                SamAccountName    = [string]$gridRow.Cells["SamAccountName"].Value
-                DisplayName       = [string]$gridRow.Cells["DisplayName"].Value
-                ObjectType        = [string]$gridRow.Cells["ObjectType"].Value
-                Enabled           = [string]$gridRow.Cells["Enabled"].Value
-                UserPrincipalName = [string]$gridRow.Cells["UserPrincipalName"].Value
-                Description       = [string]$gridRow.Cells["Description"].Value
-                DistinguishedName = [string]$gridRow.Cells["DistinguishedName"].Value
-            }
-        }
+function Refresh-GroupMembersGrid {
+    $filteredRows = @(Filter-GroupMemberRows -Rows $script:DomainGroupMemberRows -Query $txtGroupMembersSearch.Text)
+    $totalCount = @($script:DomainGroupMemberRows).Count
+    Set-DomainGroupMembersGrid -Rows $filteredRows
+
+    if (Is-Blank $txtGroupMembersSearch.Text) {
+        $lblGroupMembersCount.Text = Get-UiText "GroupMembers.Count" @($filteredRows.Count)
     }
-    catch { }
-    return @($rows | Sort-Object -Property @("ObjectType", "SamAccountName", "Name"))
+    else {
+        $lblGroupMembersCount.Text = Get-UiText "GroupMembers.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-GroupMembersSearchView {
+    if (-not $script:DomainGroupMemberRowsLoaded) { return }
+    $visibleCount = Refresh-GroupMembersGrid
+    $totalCount = @($script:DomainGroupMemberRows).Count
+    Set-Status (Get-UiText "Status.GroupMembersSearch" @($txtGroupMembersSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleGroupMemberRows {
+    if (-not $script:DomainGroupMemberRowsLoaded) { return @() }
+    return @(Filter-GroupMemberRows -Rows $script:DomainGroupMemberRows -Query $txtGroupMembersSearch.Text)
+}
+
+function Export-GroupMembersWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:DomainGroupMemberRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetGroupMembersFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:DomainGroupMemberRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoGroupMembersToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleGroupMemberRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleGroupMembers") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-GroupMemberRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.GroupMembersFileNameBase") `
+        -SheetName (Get-UiText "Export.GroupMembersSheetName") `
+        -SaveTitle (Get-UiText "Export.GroupMembersSaveTitle") `
+        -Widths @(28, 24, 28, 16, 14, 32, 42)
 }
 
 $statusStrip = New-Object System.Windows.Forms.StatusStrip
@@ -6031,12 +6430,15 @@ $btnGetAccountProps.Add_Click({
         $btnGetAccountProps.Enabled = $false
         Set-Status (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) "Info"
         $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login)
-        Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
+        $script:AccountPropertyRowsLoaded = $true
+        Refresh-AccountPropertiesGrid | Out-Null
         Set-Status (Get-UiText "Status.AccountPropertiesReceived" @(@($script:AccountPropertyRows).Count)) "Ok"
     }
     catch {
         $script:AccountPropertyRows = @()
+        $script:AccountPropertyRowsLoaded = $false
         Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
+        $lblAccountPropsCount.Text = Get-UiText "AccountProperties.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.AccountPropertiesError" @($msg)) "Error"
         Show-ErrorBox $msg (Get-UiText "Tab.AccountProperties")
@@ -6048,39 +6450,17 @@ $btnGetAccountProps.Add_Click({
 
 $btnClearAccountProps.Add_Click({
     $script:AccountPropertyRows = @()
+    $script:AccountPropertyRowsLoaded = $false
     Set-AccountPropertiesGrid -Rows $script:AccountPropertyRows
+    $txtAccountPropsSearch.Clear()
+    $lblAccountPropsCount.Text = Get-UiText "AccountProperties.CountEmpty"
     Set-Status (Get-UiText "Status.AccountPropertiesCleared") "Info"
 })
 
-$btnCopyAccountProps.Add_Click({
-    try {
-        $rows = @(Get-SelectedAccountPropertyRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.SelectProperties") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountPropertyRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.PropertiesCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.PropertiesCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
-$btnCopyAllAccountProps.Add_Click({
-    try {
-        $rows = @($script:AccountPropertyRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.NoProperties") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountPropertyRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.AllPropertiesCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.PropertiesCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
+$btnExportAccountPropsCsv.Add_Click({ Export-AccountPropertiesWithDialog -Format "CSV" })
+$btnExportAccountPropsXlsx.Add_Click({ Export-AccountPropertiesWithDialog -Format "XLSX" })
+$btnCopyAccountPropertyValues.Add_Click({ Copy-SelectedAccountPropertyValues })
+$txtAccountPropsSearch.Add_TextChanged({ Update-AccountPropertiesSearchView })
 
 $btnGetAccountGroups.Add_Click({
     $domain = $txtDomain.Text.Trim()
@@ -6102,7 +6482,8 @@ $btnGetAccountGroups.Add_Click({
             -Detail "$domain\$login"
 
         $script:AccountGroupRows = @(Get-AdAccountGroupsNoRsat -DomainOrDc $domain -Login $login -ProgressWindow $progressWindow)
-        Set-AccountGroupsGrid -Rows $script:AccountGroupRows
+        $script:AccountGroupRowsLoaded = $true
+        Refresh-AccountGroupsGrid | Out-Null
 
         if (@($script:AccountGroupRows).Count -eq 0) {
             Set-Status (Get-UiText "Status.NoAccountGroups" @($domain, $login)) "Warn"
@@ -6113,7 +6494,9 @@ $btnGetAccountGroups.Add_Click({
     }
     catch {
         $script:AccountGroupRows = @()
+        $script:AccountGroupRowsLoaded = $false
         Set-AccountGroupsGrid -Rows $script:AccountGroupRows
+        $lblAccountGroupsCount.Text = Get-UiText "Groups.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.AccountGroupsError" @($msg)) "Error"
         Close-BusyProgressWindow $progressWindow
@@ -6128,39 +6511,17 @@ $btnGetAccountGroups.Add_Click({
 
 $btnClearAccountGroups.Add_Click({
     $script:AccountGroupRows = @()
+    $script:AccountGroupRowsLoaded = $false
     Set-AccountGroupsGrid -Rows $script:AccountGroupRows
+    $txtAccountGroupsSearch.Clear()
+    $lblAccountGroupsCount.Text = Get-UiText "Groups.CountEmpty"
     Set-Status (Get-UiText "Status.AccountGroupsCleared") "Info"
 })
 
-$btnCopyAccountGroups.Add_Click({
-    try {
-        $rows = @(Get-SelectedAccountGroupRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.SelectGroups") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.GroupsCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.GroupsCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
-$btnCopyAllAccountGroups.Add_Click({
-    try {
-        $rows = @($script:AccountGroupRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.NoAccountGroupsToCopy") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.AllGroupsCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.GroupsCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
+$btnExportAccountGroupsCsv.Add_Click({ Export-AccountGroupsWithDialog -Format "CSV" })
+$btnExportAccountGroupsXlsx.Add_Click({ Export-AccountGroupsWithDialog -Format "XLSX" })
+$btnCopyAccountGroupNames.Add_Click({ Copy-SelectedGroupNames -Grid $gridAccountGroups })
+$txtAccountGroupsSearch.Add_TextChanged({ Update-AccountGroupsSearchView })
 
 
 
@@ -6189,7 +6550,8 @@ $btnGetGroupMembers.Add_Click({
             -Detail "$domain\$groupIdentity"
 
         $script:DomainGroupMemberRows = @(Get-AdDomainGroupMembersNoRsat -DomainOrDc $domain -GroupIdentity $groupIdentity -ProgressWindow $progressWindow)
-        Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
+        $script:DomainGroupMemberRowsLoaded = $true
+        Refresh-GroupMembersGrid | Out-Null
 
         if (@($script:DomainGroupMemberRows).Count -eq 0) {
             Set-Status (Get-UiText "Status.NoGroupMembers" @($domain, $groupIdentity)) "Warn"
@@ -6200,7 +6562,9 @@ $btnGetGroupMembers.Add_Click({
     }
     catch {
         $script:DomainGroupMemberRows = @()
+        $script:DomainGroupMemberRowsLoaded = $false
         Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
+        $lblGroupMembersCount.Text = Get-UiText "GroupMembers.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.GroupMembersError" @($msg)) "Error"
         Close-BusyProgressWindow $progressWindow
@@ -6215,39 +6579,17 @@ $btnGetGroupMembers.Add_Click({
 
 $btnClearGroupMembers.Add_Click({
     $script:DomainGroupMemberRows = @()
+    $script:DomainGroupMemberRowsLoaded = $false
     Set-DomainGroupMembersGrid -Rows $script:DomainGroupMemberRows
+    $txtGroupMembersSearch.Clear()
+    $lblGroupMembersCount.Text = Get-UiText "GroupMembers.CountEmpty"
     Set-Status (Get-UiText "Status.GroupMembersCleared") "Info"
 })
 
-$btnCopyGroupMembers.Add_Click({
-    try {
-        $rows = @(Get-SelectedDomainGroupMemberRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.SelectGroupMembers") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-DomainGroupMemberRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.GroupMembersCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.GroupMembersCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
-$btnCopyAllGroupMembers.Add_Click({
-    try {
-        $rows = @($script:DomainGroupMemberRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.NoGroupMembersToCopy") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-DomainGroupMemberRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.AllGroupMembersCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.GroupMembersCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
+$btnExportGroupMembersCsv.Add_Click({ Export-GroupMembersWithDialog -Format "CSV" })
+$btnExportGroupMembersXlsx.Add_Click({ Export-GroupMembersWithDialog -Format "XLSX" })
+$btnCopyGroupMemberNames.Add_Click({ Copy-SelectedGroupNames -Grid $gridGroupMembers })
+$txtGroupMembersSearch.Add_TextChanged({ Update-GroupMembersSearchView })
 
 
 
@@ -6271,7 +6613,8 @@ $btnGetManagedGroups.Add_Click({
             -Detail "$domain\$login"
 
         $script:ManagedGroupRows = @(Get-ManagedGroups -DomainOrDc $domain -ManagerLogin $login -ProgressWindow $progressWindow)
-        Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
+        $script:ManagedGroupRowsLoaded = $true
+        Refresh-ManagedGroupsGrid | Out-Null
 
         if (@($script:ManagedGroupRows).Count -eq 0) {
             Set-Status (Get-UiText "Status.NoManagedGroups" @($domain, $login)) "Warn"
@@ -6282,7 +6625,9 @@ $btnGetManagedGroups.Add_Click({
     }
     catch {
         $script:ManagedGroupRows = @()
+        $script:ManagedGroupRowsLoaded = $false
         Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
+        $lblManagedGroupsCount.Text = Get-UiText "Groups.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.ManagedGroupsError" @($msg)) "Error"
         Close-BusyProgressWindow $progressWindow
@@ -6297,39 +6642,17 @@ $btnGetManagedGroups.Add_Click({
 
 $btnClearManagedGroups.Add_Click({
     $script:ManagedGroupRows = @()
+    $script:ManagedGroupRowsLoaded = $false
     Set-ManagedGroupsGrid -Rows $script:ManagedGroupRows
+    $txtManagedGroupsSearch.Clear()
+    $lblManagedGroupsCount.Text = Get-UiText "Groups.CountEmpty"
     Set-Status (Get-UiText "Status.ManagedGroupsCleared") "Info"
 })
 
-$btnCopyManagedGroups.Add_Click({
-    try {
-        $rows = @(Get-SelectedManagedGroupRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.SelectManagedGroups") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.ManagedGroupsCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.ManagedGroupsCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
-$btnCopyAllManagedGroups.Add_Click({
-    try {
-        $rows = @($script:ManagedGroupRows)
-        if ($rows.Count -eq 0) {
-            Set-Status (Get-UiText "Status.NoManagedGroupsToCopy") "Warn"
-            return
-        }
-        [System.Windows.Forms.Clipboard]::SetText((Convert-AccountGroupRowsToClipboardText -Rows $rows))
-        Set-Status (Get-UiText "Status.AllManagedGroupsCopied" @($rows.Count)) "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.ManagedGroupsCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
+$btnExportManagedGroupsCsv.Add_Click({ Export-ManagedGroupsWithDialog -Format "CSV" })
+$btnExportManagedGroupsXlsx.Add_Click({ Export-ManagedGroupsWithDialog -Format "XLSX" })
+$btnCopyManagedGroupNames.Add_Click({ Copy-SelectedGroupNames -Grid $gridManagedGroups })
+$txtManagedGroupsSearch.Add_TextChanged({ Update-ManagedGroupsSearchView })
 
 
 $btnManaged.Add_Click({
@@ -6361,7 +6684,6 @@ $btnManaged.Add_Click({
     catch {
         $script:ManagedRowsAll = @()
         $script:ManagedRowsLoaded = $false
-$script:AccountPropertyRows = @()
         $gridManaged.Rows.Clear()
         $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountEmpty"
         $msg = $_.Exception.Message
@@ -6376,7 +6698,6 @@ $script:AccountPropertyRows = @()
 $btnClearManaged.Add_Click({
     $script:ManagedRowsAll = @()
     $script:ManagedRowsLoaded = $false
-$script:AccountPropertyRows = @()
     $gridManaged.Rows.Clear()
     $gridManaged.ClearSelection()
     $txtManagedSearch.Clear()

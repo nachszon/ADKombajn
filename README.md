@@ -20,9 +20,9 @@ ADKombajn currently provides:
 * domain group members view
 * accounts assigned to the selected user as manager
 * groups managed by the selected user
-* filtering and searching of managed account results
-* CSV and XLSX export of the currently visible managed account rows
-* copy-friendly output for further analysis or reporting
+* real-time searching of account properties, account groups, managed groups, and managed account results
+* CSV and XLSX export of the currently visible rows from these result tabs
+* copy-friendly actions for account logins, group names, and individual attribute values
 * operation log displayed directly in the application
 * Polish and English user interface
 
@@ -138,7 +138,7 @@ The available operations and returned information depend on the permissions of t
    * find groups managed by an account
    * review the operation log
 
-Managed account results can be filtered, searched, copied, and exported to CSV or XLSX. Exports contain the rows currently visible after applying the filter and search criteria.
+Account properties, account groups, managed groups, and managed account results can be searched, copied, and exported to CSV or XLSX. Managed accounts additionally support active/inactive filtering. Exports contain the rows currently visible after applying the available search and filter criteria.
 
 ## Building the executable
 
@@ -155,7 +155,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.13.8.0"
+.\build.ps1 -Version "2.14.0.0"
 ```
 
 The build script:
@@ -227,7 +227,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.13.8` is built with the four-part Windows executable version `2.13.8.0`.
+For example, release `2.14.0` is built with the four-part Windows executable version `2.14.0.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
