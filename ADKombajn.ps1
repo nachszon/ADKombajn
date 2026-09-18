@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.14.0-public
+# Build: 2.15.0-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.14.0"
+$script:AppVersion = "2.15.0"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -2088,6 +2088,7 @@ $script:Translations = @{
         "Context.Title" = "Kontekst pracy"
         "Context.Domain" = "Domena / DC:"
         "Context.AccountLogin" = "Login konta:"
+        "Context.GroupName" = "Nazwa grupy:"
         "Context.Mode" = "Domyślnie: LDAP 389 + signing/sealing, bez RSAT."
         "Tab.ValidatePassword" = "Walidacja hasła"
         "Tab.ChangePassword" = "Zmiana hasła"
@@ -2131,7 +2132,6 @@ $script:Translations = @{
         "Groups.CountEmpty" = "Grupy: -"
         "Groups.Count" = "Grupy: {0}"
         "Groups.CountFiltered" = "Grupy: {0} z {1}"
-        "GroupMembers.Group" = "Grupa:"
         "GroupMembers.Get" = "Pobierz członków"
         "GroupMembers.Info" = "Pokazuje bezpośrednich członków grupy domenowej z atrybutu member. Grupy zagnieżdżone są pokazane jako obiekty grupowe, bez rozwijania rekurencyjnego."
         "GroupMembers.CountEmpty" = "Członkowie: -"
@@ -2333,6 +2333,7 @@ $script:Translations = @{
         "Context.Title" = "Working context"
         "Context.Domain" = "Domain / DC:"
         "Context.AccountLogin" = "Account login:"
+        "Context.GroupName" = "Group name:"
         "Context.Mode" = "Default: LDAP 389 + signing/sealing, no RSAT."
         "Tab.ValidatePassword" = "Validate password"
         "Tab.ChangePassword" = "Change password"
@@ -2376,7 +2377,6 @@ $script:Translations = @{
         "Groups.CountEmpty" = "Groups: -"
         "Groups.Count" = "Groups: {0}"
         "Groups.CountFiltered" = "Groups: {0} of {1}"
-        "GroupMembers.Group" = "Group:"
         "GroupMembers.Get" = "Get members"
         "GroupMembers.Info" = "Displays direct members from the domain group's member attribute. Nested groups are shown as group objects and are not expanded recursively."
         "GroupMembers.CountEmpty" = "Members: -"
@@ -5368,25 +5368,25 @@ $tabLog.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabLog)
 
 $script:PreservedAccountLogin = ""
-$script:IsAccountLoginSuppressed = $false
+$script:PreservedGroupName = ""
+$script:IsGroupContextActive = $false
 
 $tabs.Add_SelectedIndexChanged({
     $isGroupMembersTab = ($tabs.SelectedTab -eq $tabGroupMembers)
 
-    if ($isGroupMembersTab -and -not $script:IsAccountLoginSuppressed) {
+    if ($isGroupMembersTab -and -not $script:IsGroupContextActive) {
         $script:PreservedAccountLogin = $txtLogin.Text
-        $txtLogin.Clear()
-        $txtLogin.Enabled = $false
-        $lblLogin.Enabled = $false
-        $script:IsAccountLoginSuppressed = $true
+        $txtLogin.Text = $script:PreservedGroupName
+        $lblLogin.Text = Get-UiText "Context.GroupName"
+        $script:IsGroupContextActive = $true
         return
     }
 
-    if (-not $isGroupMembersTab -and $script:IsAccountLoginSuppressed) {
-        $txtLogin.Enabled = $true
-        $lblLogin.Enabled = $true
+    if (-not $isGroupMembersTab -and $script:IsGroupContextActive) {
+        $script:PreservedGroupName = $txtLogin.Text
         $txtLogin.Text = $script:PreservedAccountLogin
-        $script:IsAccountLoginSuppressed = $false
+        $lblLogin.Text = Get-UiText "Context.AccountLogin"
+        $script:IsGroupContextActive = $false
     }
 })
 
@@ -5626,29 +5626,26 @@ $tabAccountGroups.Controls.Add($accountGroupsTop)
 # ---- Group members tab ----
 $groupMembersTop = New-Object System.Windows.Forms.Panel
 $groupMembersTop.Dock = [System.Windows.Forms.DockStyle]::Top
-$groupMembersTop.Height = 130
+$groupMembersTop.Height = 92
 $groupMembersTop.BackColor = $script:Theme.Back
 
-$lblGroupMembersGroup = New-Label (Get-UiText "GroupMembers.Group") 18 18 80 24
-$txtGroupMembersGroup = New-TextBoxEx 105 15 330 $false
+$btnGetGroupMembers = New-FlatButton (Get-UiText "GroupMembers.Get") 18 16 150 34
+$btnClearGroupMembers = New-SoftButton (Get-UiText "Common.Clear") 178 16 95 34
+$btnExportGroupMembersCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 283 16 112 34
+$btnExportGroupMembersXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 405 16 118 34
+$btnCopyGroupMemberNames = New-SoftButton (Get-UiText "Common.CopyNames") 533 16 130 34
 
-$btnGetGroupMembers = New-FlatButton (Get-UiText "GroupMembers.Get") 18 55 150 34
-$btnClearGroupMembers = New-SoftButton (Get-UiText "Common.Clear") 178 55 95 34
-$btnExportGroupMembersCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 283 55 112 34
-$btnExportGroupMembersXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 405 55 118 34
-$btnCopyGroupMemberNames = New-SoftButton (Get-UiText "Common.CopyNames") 533 55 130 34
+$lblGroupMembersSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtGroupMembersSearch = New-TextBoxEx 73 57 250 $false
 
-$lblGroupMembersSearch = New-Label (Get-UiText "Common.Search") 18 101 55 22
-$txtGroupMembersSearch = New-TextBoxEx 73 98 250 $false
-
-$lblGroupMembersInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 99 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblGroupMembersInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
 $lblGroupMembersInfo.ForeColor = $script:Theme.Muted
 
 $lblGroupMembersCount = New-Label (Get-UiText "GroupMembers.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
 $lblGroupMembersCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $lblGroupMembersCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
 
-$groupMembersTop.Controls.AddRange(@($lblGroupMembersGroup, $txtGroupMembersGroup, $btnGetGroupMembers, $btnClearGroupMembers, $btnExportGroupMembersCsv, $btnExportGroupMembersXlsx, $btnCopyGroupMemberNames, $lblGroupMembersSearch, $txtGroupMembersSearch, $lblGroupMembersInfo, $lblGroupMembersCount))
+$groupMembersTop.Controls.AddRange(@($btnGetGroupMembers, $btnClearGroupMembers, $btnExportGroupMembersCsv, $btnExportGroupMembersXlsx, $btnCopyGroupMemberNames, $lblGroupMembersSearch, $txtGroupMembersSearch, $lblGroupMembersInfo, $lblGroupMembersCount))
 
 $gridGroupMembers = New-Object System.Windows.Forms.DataGridView
 $gridGroupMembers.Dock = [System.Windows.Forms.DockStyle]::Fill
@@ -6527,7 +6524,7 @@ $txtAccountGroupsSearch.Add_TextChanged({ Update-AccountGroupsSearchView })
 
 $btnGetGroupMembers.Add_Click({
     $domain = $txtDomain.Text.Trim()
-    $groupIdentity = $txtGroupMembersGroup.Text.Trim()
+    $groupIdentity = $txtLogin.Text.Trim()
 
     if (Is-Blank $domain) {
         Set-Status (Get-UiText "Status.EnterDomain") "Error"
