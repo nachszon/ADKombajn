@@ -16,6 +16,16 @@ MAJOR.MINOR.PATCH
 - modular code structure
 - signed release packages
 
+## [2.15.0] - 2026-09-18
+
+### Changed
+
+* Reused the shared **Working context** field as **Group name** on the **Group members** tab, with matching Polish and English labels.
+* Preserved the account login while the group name is being used and automatically restored it after leaving the **Group members** tab.
+* Removed the separate **Group** input and aligned the action and search layout with the other result tabs.
+* Updated group member retrieval to use the group name entered in the shared context field.
+* Updated the application, demo and build versions to 2.15.0.
+
 ## [2.14.0] - 2026-09-16
 
 ### Added
