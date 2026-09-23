@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
@@ -8,12 +8,16 @@ The project follows Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-## [Unreleased]
+## [2.15.1] - 2026-09-23
+
+### Changed
+
+- Split the application source into ordered files under `src/`, while preserving a standalone `ADKombajn.ps1`.
+- Updated `build.ps1` to assemble the script before compiling the EXE, with `-AssembleOnly` for contributors.
 
 ### Planned
 
 - configurable domain selection
-- modular code structure
 - signed release packages
 
 ## [2.15.0] - 2026-09-18
