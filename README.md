@@ -1,4 +1,4 @@
-# ADKombajn
+﻿# ADKombajn
 
 A lightweight Windows GUI tool for common Microsoft Active Directory support tasks.
 
@@ -142,7 +142,7 @@ Account properties, account groups, managed groups, and managed account results 
 
 ## Building the executable
 
-The repository includes `build.ps1`, which compiles `ADKombajn.ps1` with [PS2EXE](https://github.com/MScholtes/PS2EXE).
+The repository includes `build.ps1`, which first assembles `ADKombajn.ps1` from `src/` and then compiles it with [PS2EXE](https://github.com/MScholtes/PS2EXE).
 
 Before building, make sure that the `Invoke-PS2EXE` command is available in the current Windows PowerShell session.
 
@@ -155,7 +155,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.15.0.0"
+.\build.ps1 -Version "2.15.1.0"
 ```
 
 The build script:
@@ -215,9 +215,37 @@ ADKombajn/
 │       ├── 08-managed-accounts.png
 │       └── 09-log.png
 └── src/
+    ├── order.txt
+    ├── 00-bootstrap.ps1
+    ├── 10-colored-tabs.ps1
+    ├── 20-state-and-brand.ps1
+    ├── 30-localization.ps1
+    ├── 40-ui-helpers.ps1
+    ├── 50-splash.ps1
+    ├── 60-directory.ps1
+    ├── 70-export.ps1
+    ├── 80-managed-grid.ps1
+    ├── 90-main-window.ps1
+    └── 99-events.ps1
 ```
 
-The `src/` directory is reserved for future modularization. The project structure may change as the application is split into separate modules.
+### Developing from source
+
+Edit the numbered files in `src/`; `order.txt` lists their assembly order. Bootstrap loads assemblies, the UI control follows, then application state and the embedded brand image. Localization, shared UI helpers and the splash precede LDAP operations, exports and managed grid helpers. The main window creates controls; the events file attaches their handlers and shows the form. Keep definitions ahead of the code that executes them.
+
+From the repository root, assemble the standalone PowerShell script without PS2EXE:
+
+```powershell
+.\build.ps1 -AssembleOnly
+```
+
+Run the assembled file on Windows PowerShell 5.1 and check both languages and the relevant tabs:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\ADKombajn.ps1 -Language en
+```
+
+To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.1.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
 
 ## Versioning
 
@@ -227,7 +255,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.15.0` is built with the four-part Windows executable version `2.15.0.0`.
+For example, release `2.15.0` is built with the four-part Windows executable version `2.15.1.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version

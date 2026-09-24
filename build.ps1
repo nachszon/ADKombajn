@@ -1,8 +1,9 @@
 param(
-    [string]$Version = "2.15.0.0",
+    [string]$Version = "2.15.1.0",
     [string]$InputFile = ".\ADKombajn.ps1",
     [string]$IconFile = ".\kombajn.ico",
-    [string]$OutputDirectory = "."
+    [string]$OutputDirectory = ".",
+    [switch]$AssembleOnly
 )
 
 Set-StrictMode -Version Latest
@@ -63,6 +64,39 @@ function Show-BomInfo {
         Write-Host "BOM bytes: file is shorter than 3 bytes"
     }
 }
+
+function Join-ApplicationSource {
+    param([string]$Root, [string]$Destination)
+
+    $manifest = Join-Path $Root "src\order.txt"
+    if (-not (Test-Path -LiteralPath $manifest)) { throw "Source manifest not found: $manifest" }
+    $parts = @(Get-Content -LiteralPath $manifest | Where-Object { $_.Trim() -ne "" })
+    if ($parts.Count -eq 0) { throw "Source manifest is empty: $manifest" }
+
+    $builder = New-Object System.Text.StringBuilder
+    $strictUtf8 = New-Object System.Text.UTF8Encoding -ArgumentList $false, $true
+    foreach ($part in $parts) {
+        if ($part -notmatch '^[0-9]{2}-[a-z-]+\.ps1$') { throw "Invalid source entry: $part" }
+        $source = Join-Path (Join-Path $Root "src") $part
+        if (-not (Test-Path -LiteralPath $source)) { throw "Source file not found: $source" }
+        $bytes = [System.IO.File]::ReadAllBytes($source)
+        if ($bytes.Length -lt 3 -or $bytes[0] -ne 0xEF -or $bytes[1] -ne 0xBB -or $bytes[2] -ne 0xBF) {
+            throw "Source must use UTF-8 with BOM: $source"
+        }
+        [void]$builder.Append($strictUtf8.GetString($bytes, 3, $bytes.Length - 3))
+    }
+    $target = [System.IO.Path]::GetFullPath($Destination)
+    $directory = [System.IO.Path]::GetDirectoryName($target)
+    if (-not (Test-Path -LiteralPath $directory)) { [void][System.IO.Directory]::CreateDirectory($directory) }
+    $encoding = New-Object System.Text.UTF8Encoding -ArgumentList $true
+    [System.IO.File]::WriteAllText($target, $builder.ToString(), $encoding)
+    Write-Host "Standalone script ready: $target" -ForegroundColor Green
+}
+
+$projectRoot = $PSScriptRoot
+if ($InputFile -eq ".\ADKombajn.ps1") { $InputFile = Join-Path $projectRoot "ADKombajn.ps1" }
+Join-ApplicationSource -Root $projectRoot -Destination $InputFile
+if ($AssembleOnly) { return }
 
 $ReleaseVersion = Get-ReleaseVersion -Version $Version
 
