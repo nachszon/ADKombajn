@@ -150,10 +150,16 @@ $btnGetAccountProps.Add_Click({
         return
     }
 
+    $progressWindow = $null
+
     try {
         $btnGetAccountProps.Enabled = $false
         Set-Status (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) "Info"
-        $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login)
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.AccountProperties") `
+            -Message (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) `
+            -Detail "$domain\$login"
+        $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login -ProgressWindow $progressWindow)
         $script:AccountPropertyRowsLoaded = $true
         Refresh-AccountPropertiesGrid | Out-Null
         Set-Status (Get-UiText "Status.AccountPropertiesReceived" @(@($script:AccountPropertyRows).Count)) "Ok"
@@ -165,9 +171,12 @@ $btnGetAccountProps.Add_Click({
         $lblAccountPropsCount.Text = Get-UiText "AccountProperties.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.AccountPropertiesError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.AccountProperties")
     }
     finally {
+        Close-BusyProgressWindow $progressWindow
         $btnGetAccountProps.Enabled = $true
     }
 })
@@ -388,10 +397,16 @@ $btnManaged.Add_Click({
         return
     }
 
+    $progressWindow = $null
+
     try {
         $btnManaged.Enabled = $false
         Set-Status (Get-UiText "Status.FindingManagerAccounts" @($domain, $login)) "Info"
-        $script:ManagedRowsAll = @(Get-ManagedAccounts -DomainOrDc $domain -ManagerLogin $login)
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.ManagerAccounts") `
+            -Message (Get-UiText "Status.FindingManagerAccounts" @($domain, $login)) `
+            -Detail "$domain\$login"
+        $script:ManagedRowsAll = @(Get-ManagedAccounts -DomainOrDc $domain -ManagerLogin $login -ProgressWindow $progressWindow)
         $script:ManagedRowsLoaded = $true
 
         $visibleCount = Refresh-ManagedAccountsGrid
@@ -412,9 +427,12 @@ $btnManaged.Add_Click({
         $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.ManagerAccountsError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.ManagerAccounts")
     }
     finally {
+        Close-BusyProgressWindow $progressWindow
         $btnManaged.Enabled = $true
     }
 })
