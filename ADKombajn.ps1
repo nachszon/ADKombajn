@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.15.0-public
+# Build: 2.15.2-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -148,7 +148,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.0"
+$script:AppVersion = "2.15.2"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -2084,6 +2084,8 @@ $script:Translations = @{
         "Progress.SortGroupMembers" = "Sortuję listę członków grupy..."
         "Progress.FindManager" = "Szukam wskazanego konta"
         "Progress.FindManagedGroups" = "Szukam zarządzanych grup"
+        "Progress.FindManagedAccounts" = "Szukam zarządzanych kont"
+        "Progress.OrganizeManagedAccounts" = "Porządkuję zarządzane konta"
         "Progress.OrganizeManagedGroups" = "Porządkuję zarządzane grupy"
         "Context.Title" = "Kontekst pracy"
         "Context.Domain" = "Domena / DC:"
@@ -2329,6 +2331,8 @@ $script:Translations = @{
         "Progress.SortGroupMembers" = "Sorting the group member list..."
         "Progress.FindManager" = "Searching for the specified account"
         "Progress.FindManagedGroups" = "Searching for managed groups"
+        "Progress.FindManagedAccounts" = "Searching for managed accounts"
+        "Progress.OrganizeManagedAccounts" = "Organizing managed accounts"
         "Progress.OrganizeManagedGroups" = "Organizing managed groups"
         "Context.Title" = "Working context"
         "Context.Domain" = "Domain / DC:"
@@ -3893,8 +3897,11 @@ function Convert-AdPropertyValueToText {
 function Get-AdUserAllPropertiesNoRsat {
     param(
         [string]$DomainOrDc,
-        [string]$Login
+        [string]$Login,
+        $ProgressWindow = $null
     )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindAccount") -Detail "$DomainOrDc\$Login" -Marquee $true
 
     $ldapBasePath = Get-LdapBasePath -DomainOrDc $DomainOrDc
     $root = $null
@@ -3945,7 +3952,13 @@ function Get-AdUserAllPropertiesNoRsat {
         $props = $result.Properties
         $rows = @()
 
-        foreach ($name in @($props.PropertyNames | Sort-Object)) {
+        $propertyNames = @($props.PropertyNames | Sort-Object)
+        $total = $propertyNames.Count
+        $index = 0
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadAccount") -Detail "0 / $total" -Value 0 -Maximum $total
+        foreach ($name in $propertyNames) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadAccount") -Detail "$index / $total" -Value $index -Maximum $total
             $values = $props[$name]
             $count = 0
             try { $count = $values.Count } catch { $count = 1 }
@@ -3957,6 +3970,8 @@ function Get-AdUserAllPropertiesNoRsat {
                 Count     = [int]$count
             }
         }
+
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
 
         # Computed/helper values corresponding to fields conveniently exposed by Get-ADUser.
         $computedRows = @()
@@ -4197,7 +4212,7 @@ function Get-AdAccountGroupsNoRsat {
         $memberOfUnique = @($memberOf | Sort-Object -Unique)
         $groupIndex = 0
         $groupTotal = $memberOfUnique.Count
-        if ($groupTotal -gt 0) {
+        if ($groupTotal -gt -1) {
             Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadMemberOf") -Detail "0 / $groupTotal" -Value 0 -Maximum $groupTotal
         }
 
@@ -4520,8 +4535,11 @@ function Get-AdDomainGroupMembersNoRsat {
 function Get-ManagedAccounts {
     param(
         [string]$DomainOrDc,
-        [string]$ManagerLogin
+        [string]$ManagerLogin,
+        $ProgressWindow = $null
     )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManager") -Detail "$DomainOrDc\$ManagerLogin" -Marquee $true
 
     $manager = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $ManagerLogin
     if ($null -eq $manager -or (Is-Blank $manager.DistinguishedName)) {
@@ -4546,10 +4564,16 @@ function Get-ManagedAccounts {
             [void]$searcher.PropertiesToLoad.Add($p)
         }
 
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManagedAccounts") -Detail $manager.DistinguishedName -Marquee $true
         $results = $searcher.FindAll()
         $rows = @()
 
+        $total = $results.Count
+        $index = 0
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedAccounts") -Detail "0 / $total" -Value 0 -Maximum $total
         foreach ($result in $results) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedAccounts") -Detail "$index / $total" -Value $index -Maximum $total
             $props = $result.Properties
             $uac = Get-SearchPropertyValue -Properties $props -Name "userAccountControl"
             $pwd = Get-SearchPropertyValue -Properties $props -Name "pwdLastSet"
@@ -4566,6 +4590,7 @@ function Get-ManagedAccounts {
             }
         }
 
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
         return @($rows | Sort-Object SamAccountName)
     }
     finally {
@@ -6423,10 +6448,16 @@ $btnGetAccountProps.Add_Click({
         return
     }
 
+    $progressWindow = $null
+
     try {
         $btnGetAccountProps.Enabled = $false
         Set-Status (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) "Info"
-        $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login)
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.AccountProperties") `
+            -Message (Get-UiText "Status.GettingAccountProperties" @($domain, $login)) `
+            -Detail "$domain\$login"
+        $script:AccountPropertyRows = @(Get-AdUserAllPropertiesNoRsat -DomainOrDc $domain -Login $login -ProgressWindow $progressWindow)
         $script:AccountPropertyRowsLoaded = $true
         Refresh-AccountPropertiesGrid | Out-Null
         Set-Status (Get-UiText "Status.AccountPropertiesReceived" @(@($script:AccountPropertyRows).Count)) "Ok"
@@ -6438,9 +6469,12 @@ $btnGetAccountProps.Add_Click({
         $lblAccountPropsCount.Text = Get-UiText "AccountProperties.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.AccountPropertiesError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.AccountProperties")
     }
     finally {
+        Close-BusyProgressWindow $progressWindow
         $btnGetAccountProps.Enabled = $true
     }
 })
@@ -6661,10 +6695,16 @@ $btnManaged.Add_Click({
         return
     }
 
+    $progressWindow = $null
+
     try {
         $btnManaged.Enabled = $false
         Set-Status (Get-UiText "Status.FindingManagerAccounts" @($domain, $login)) "Info"
-        $script:ManagedRowsAll = @(Get-ManagedAccounts -DomainOrDc $domain -ManagerLogin $login)
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.ManagerAccounts") `
+            -Message (Get-UiText "Status.FindingManagerAccounts" @($domain, $login)) `
+            -Detail "$domain\$login"
+        $script:ManagedRowsAll = @(Get-ManagedAccounts -DomainOrDc $domain -ManagerLogin $login -ProgressWindow $progressWindow)
         $script:ManagedRowsLoaded = $true
 
         $visibleCount = Refresh-ManagedAccountsGrid
@@ -6685,9 +6725,12 @@ $btnManaged.Add_Click({
         $lblManagedCount.Text = Get-UiText "ManagerAccounts.CountEmpty"
         $msg = $_.Exception.Message
         Set-Status (Get-UiText "Status.ManagerAccountsError" @($msg)) "Error"
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
         Show-ErrorBox $msg (Get-UiText "Tab.ManagerAccounts")
     }
     finally {
+        Close-BusyProgressWindow $progressWindow
         $btnManaged.Enabled = $true
     }
 })

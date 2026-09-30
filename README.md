@@ -23,6 +23,7 @@ ADKombajn currently provides:
 * real-time searching of account properties, account groups, managed groups, and managed account results
 * CSV and XLSX export of the currently visible rows from these result tabs
 * copy-friendly actions for account logins, group names, and individual attribute values
+* progress indicators for directory retrieval, including account properties and managed accounts
 * operation log displayed directly in the application
 * Polish and English user interface
 
@@ -140,6 +141,8 @@ The available operations and returned information depend on the permissions of t
 
 Account properties, account groups, managed groups, and managed account results can be searched, copied, and exported to CSV or XLSX. Managed accounts additionally support active/inactive filtering. Exports contain the rows currently visible after applying the available search and filter criteria.
 
+Progress windows show the current retrieval stage and counters where available. Account properties and managed accounts now use progress windows with Polish and English messages; these windows close when retrieval finishes or fails.
+
 ## Building the executable
 
 The repository includes `build.ps1`, which first assembles `ADKombajn.ps1` from `src/` and then compiles it with [PS2EXE](https://github.com/MScholtes/PS2EXE).
@@ -155,7 +158,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.15.1.0"
+.\build.ps1 -Version "2.15.2.0"
 ```
 
 The build script:
@@ -166,7 +169,7 @@ The build script:
 * explicitly targets the x64 architecture
 * writes the release asset as `ADKombajn-<version>-win-x64.exe`
 
-Custom input, icon, and output locations can be supplied when needed:
+Custom assembled-script, icon, and executable output locations can be supplied when needed. The `-InputFile` path is overwritten with the script assembled from `src/`; it must not point to the demo or another standalone script:
 
 ```powershell
 .\build.ps1 `
@@ -245,7 +248,7 @@ Run the assembled file on Windows PowerShell 5.1 and check both languages and th
 powershell.exe -ExecutionPolicy Bypass -File .\ADKombajn.ps1 -Language en
 ```
 
-To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.1.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
+To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.2.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
 
 ## Versioning
 
@@ -255,7 +258,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.15.0` is built with the four-part Windows executable version `2.15.1.0`.
+For example, release `2.15.2` is built with the four-part Windows executable version `2.15.2.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
@@ -292,7 +295,6 @@ Planned improvements may include:
 
 * configurable domain selection
 * improved search and filtering
-* modular PowerShell code structure
 * configuration file support
 * additional validation and error handling
 * signed releases
