@@ -8,6 +8,17 @@ The project follows Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
+## [2.15.2] - 2026-09-30
+
+### Added
+
+- Added progress indicators to the **Account properties** and **Managed accounts** tabs ([#26](https://github.com/nachszon/ADKombajn/issues/26)).
+- Added retrieval-stage messages and progress counters for these operations in Polish and English.
+
+### Changed
+
+- Ensured progress windows on both tabs close when retrieval completes or fails, including when an account is not found.
+
 ## [2.15.1] - 2026-09-24
 
 ### Changed

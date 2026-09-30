@@ -659,8 +659,11 @@ function Convert-AdPropertyValueToText {
 function Get-AdUserAllPropertiesNoRsat {
     param(
         [string]$DomainOrDc,
-        [string]$Login
+        [string]$Login,
+        $ProgressWindow = $null
     )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindAccount") -Detail "$DomainOrDc\$Login" -Marquee $true
 
     $ldapBasePath = Get-LdapBasePath -DomainOrDc $DomainOrDc
     $root = $null
@@ -711,7 +714,13 @@ function Get-AdUserAllPropertiesNoRsat {
         $props = $result.Properties
         $rows = @()
 
-        foreach ($name in @($props.PropertyNames | Sort-Object)) {
+        $propertyNames = @($props.PropertyNames | Sort-Object)
+        $total = $propertyNames.Count
+        $index = 0
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadAccount") -Detail "0 / $total" -Value 0 -Maximum $total
+        foreach ($name in $propertyNames) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadAccount") -Detail "$index / $total" -Value $index -Maximum $total
             $values = $props[$name]
             $count = 0
             try { $count = $values.Count } catch { $count = 1 }
@@ -723,6 +732,8 @@ function Get-AdUserAllPropertiesNoRsat {
                 Count     = [int]$count
             }
         }
+
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
 
         # Computed/helper values corresponding to fields conveniently exposed by Get-ADUser.
         $computedRows = @()
@@ -963,7 +974,7 @@ function Get-AdAccountGroupsNoRsat {
         $memberOfUnique = @($memberOf | Sort-Object -Unique)
         $groupIndex = 0
         $groupTotal = $memberOfUnique.Count
-        if ($groupTotal -gt 0) {
+        if ($groupTotal -gt -1) {
             Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadMemberOf") -Detail "0 / $groupTotal" -Value 0 -Maximum $groupTotal
         }
 
@@ -1286,8 +1297,11 @@ function Get-AdDomainGroupMembersNoRsat {
 function Get-ManagedAccounts {
     param(
         [string]$DomainOrDc,
-        [string]$ManagerLogin
+        [string]$ManagerLogin,
+        $ProgressWindow = $null
     )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManager") -Detail "$DomainOrDc\$ManagerLogin" -Marquee $true
 
     $manager = Find-AdUserBasic -DomainOrDc $DomainOrDc -Login $ManagerLogin
     if ($null -eq $manager -or (Is-Blank $manager.DistinguishedName)) {
@@ -1312,10 +1326,16 @@ function Get-ManagedAccounts {
             [void]$searcher.PropertiesToLoad.Add($p)
         }
 
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindManagedAccounts") -Detail $manager.DistinguishedName -Marquee $true
         $results = $searcher.FindAll()
         $rows = @()
 
+        $total = $results.Count
+        $index = 0
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedAccounts") -Detail "0 / $total" -Value 0 -Maximum $total
         foreach ($result in $results) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeManagedAccounts") -Detail "$index / $total" -Value $index -Maximum $total
             $props = $result.Properties
             $uac = Get-SearchPropertyValue -Properties $props -Name "userAccountControl"
             $pwd = Get-SearchPropertyValue -Properties $props -Name "pwdLastSet"
@@ -1332,6 +1352,7 @@ function Get-ManagedAccounts {
             }
         }
 
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
         return @($rows | Sort-Object SamAccountName)
     }
     finally {

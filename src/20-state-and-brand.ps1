@@ -3,7 +3,7 @@
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.1"
+$script:AppVersion = "2.15.2"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
