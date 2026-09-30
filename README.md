@@ -8,6 +8,10 @@ A lightweight Windows GUI tool for common Microsoft Active Directory support tas
 
 The application is written in PowerShell, uses a graphical Windows interface, and is available in Polish and English.
 
+## Demo
+
+https://github.com/user-attachments/assets/2485552d-c3b7-4d08-ad64-075f88e60b43
+
 ## Features
 
 ADKombajn currently provides:
