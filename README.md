@@ -28,7 +28,6 @@ ADKombajn currently provides:
 * CSV and XLSX export of the currently visible rows from these result tabs
 * copy-friendly actions for account logins, group names, and individual attribute values
 * progress indicators for directory retrieval, including account properties and managed accounts
-* operation log displayed directly in the application
 * Polish and English user interface
 
 ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not require RSAT or the ActiveDirectory PowerShell module.
@@ -56,9 +55,6 @@ ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not requi
 ![ADKombajn managed groups](docs/images/07-managed-groups.png)
 
 ![ADKombajn managed accounts](docs/images/08-managed-accounts.png)
-
-![ADKombajn log](docs/images/09-log.png)
-
 
 ## Download and run
 
@@ -141,7 +137,6 @@ The available operations and returned information depend on the permissions of t
    * display members of a domain group
    * find accounts assigned to a manager
    * find groups managed by an account
-   * review the operation log
 
 Account properties, account groups, managed groups, and managed account results can be searched, copied, and exported to CSV or XLSX. Managed accounts additionally support active/inactive filtering. Exports contain the rows currently visible after applying the available search and filter criteria.
 
@@ -162,7 +157,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.15.2.0"
+.\build.ps1 -Version "2.15.3.0"
 ```
 
 The build script:
@@ -219,8 +214,7 @@ ADKombajn/
 │       ├── 05-account-groups.png
 │       ├── 06-group-members.png
 │       ├── 07-managed-groups.png
-│       ├── 08-managed-accounts.png
-│       └── 09-log.png
+│       └── 08-managed-accounts.png
 └── src/
     ├── order.txt
     ├── 00-bootstrap.ps1
@@ -252,7 +246,7 @@ Run the assembled file on Windows PowerShell 5.1 and check both languages and th
 powershell.exe -ExecutionPolicy Bypass -File .\ADKombajn.ps1 -Language en
 ```
 
-To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.2.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
+To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.3.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
 
 ## Versioning
 
@@ -262,7 +256,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.15.2` is built with the four-part Windows executable version `2.15.2.0`.
+For example, release `2.15.3` is built with the four-part Windows executable version `2.15.3.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
