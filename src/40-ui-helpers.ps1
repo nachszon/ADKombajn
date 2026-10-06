@@ -264,52 +264,20 @@ function New-CardGroup {
     return $grp
 }
 
-function Write-Log {
-    param(
-        [string]$Text,
-        [ValidateSet("INFO", "OK", "WARN", "ERROR")]
-        [string]$Level = "INFO"
-    )
-
-    $stamp = Get-Date -Format "HH:mm:ss"
-    $line = "[$stamp][$Level] $Text"
-
-    try {
-        $targets = @()
-        if ($null -ne $script:txtLogs -and @($script:txtLogs).Count -gt 0) {
-            $targets = @($script:txtLogs)
-        }
-        elseif ($null -ne $script:txtLog) {
-            $targets = @($script:txtLog)
-        }
-
-        foreach ($logBox in $targets) {
-            if ($null -ne $logBox -and -not $logBox.IsDisposed) {
-                $logBox.AppendText($line + [Environment]::NewLine)
-                $logBox.SelectionStart = $logBox.TextLength
-                $logBox.ScrollToCaret()
-            }
-        }
-    }
-    catch { }
-}
-
 function Set-Status {
     param(
         [string]$Text,
         [ValidateSet("Info", "Ok", "Warn", "Error")]
-        [string]$Kind = "Info",
-        [bool]$ToLog = $true
+        [string]$Kind = "Info"
     )
 
     $color = $script:Theme.Text
-    $level = "INFO"
 
     switch ($Kind) {
-        "Ok"    { $color = $script:Theme.Good; $level = "OK" }
-        "Warn"  { $color = $script:Theme.Warn; $level = "WARN" }
-        "Error" { $color = $script:Theme.Bad;  $level = "ERROR" }
-        default  { $color = $script:Theme.Text; $level = "INFO" }
+        "Ok"    { $color = $script:Theme.Good }
+        "Warn"  { $color = $script:Theme.Warn }
+        "Error" { $color = $script:Theme.Bad }
+        default  { $color = $script:Theme.Text }
     }
 
     try {
@@ -320,7 +288,6 @@ function Set-Status {
     }
     catch { }
 
-    if ($ToLog) { Write-Log -Text $Text -Level $level }
     try { [System.Windows.Forms.Application]::DoEvents() } catch { }
 }
 

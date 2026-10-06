@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.15.2-public
+# Build: 2.15.3-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -46,7 +46,6 @@ public class KombajnColorTabControlV21 : TabControl
     public Color AccountGroupsTabColor = Color.FromArgb(0, 92, 185);
     public Color GroupMembersTabColor = Color.FromArgb(185, 42, 94);
     public Color ManagedGroupsTabColor = Color.FromArgb(82, 104, 201);
-    public Color LogTabColor = Color.FromArgb(150, 92, 18);
     public Color InactiveTextColor = Color.FromArgb(45, 55, 70);
     public Color SelectedTextColor = Color.White;
 
@@ -66,7 +65,6 @@ public class KombajnColorTabControlV21 : TabControl
         if (index == 4) return GroupMembersTabColor;
         if (index == 5) return ManagedGroupsTabColor;
         if (index == 6) return ManagerTabColor;
-        if (index == 7) return LogTabColor;
         return Color.FromArgb(95, 105, 120);
     }
 
@@ -148,7 +146,7 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.2"
+$script:AppVersion = "2.15.3"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -163,8 +161,6 @@ $script:ManagedGroupRows = @()
 $script:ManagedGroupRowsLoaded = $false
 $script:MainForm = $null
 $script:StatusLabel = $null
-$script:txtLog = $null
-$script:txtLogs = @()
 $script:AppWindowIcon = $null
 $script:BrandImageStream = $null
 $script:BrandImage = $null
@@ -2045,7 +2041,7 @@ $script:Translations = @{
         "Splash.Author" = "Autor: {0}"
         "Splash.Version" = "WERSJA {0}"
         "Splash.Loading" = "Ładuję interfejs..."
-        "Header.Subtitle" = "Walidacja, zmiana hasła, właściwości konta, grupy konta, zarządzane konta, log"
+        "Header.Subtitle" = "Walidacja i zmiana hasła, właściwości konta, grupy i zarządzane konta"
         "Header.Author" = "Autor: {0}"
         "Busy.Title" = "Przetwarzanie"
         "Busy.Message" = "Proszę czekać..."
@@ -2099,7 +2095,6 @@ $script:Translations = @{
         "Tab.AccountGroups" = "Grupy konta"
         "Tab.GroupMembers" = "Członkowie grupy"
         "Tab.ManagedGroups" = "Zarządzane grupy"
-        "Tab.Log" = "Log"
         "Validation.Title" = "Walidacja hasła"
         "Validation.Password" = "Hasło:"
         "Validation.ShowPassword" = "Pokaż hasło"
@@ -2119,10 +2114,6 @@ $script:Translations = @{
         "Common.CopyNames" = "Kopiuj nazwy"
         "Common.Search" = "Szukaj:"
         "Common.ExportVisibleInfo" = "Eksport obejmuje aktualnie widoczne wiersze."
-        "Common.Log" = "Log"
-        "Common.ClearLog" = "Wyczyść log"
-        "Common.CopyLog" = "Kopiuj log"
-        "Log.Events" = "Log zdarzeń"
         "AccountProperties.Get" = "Pobierz właściwości"
         "AccountProperties.Info" = "Pokazuje atrybuty LDAP konta, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADUser -Properties *."
         "AccountProperties.CopyValues" = "Kopiuj wartości"
@@ -2206,10 +2197,6 @@ $script:Translations = @{
         "Status.ClipboardFailed" = "Nie udało się skopiować do schowka: {0}"
         "Status.ReadyShort" = "Gotowy."
         "Status.Ready" = "Gotowy. Podaj domenę/DC i login."
-        "Status.LogCleared" = "Log wyczyszczony."
-        "Status.LogEmpty" = "Log jest pusty."
-        "Status.LogCopied" = "Log skopiowany do schowka."
-        "Status.LogCopyFailed" = "Nie udało się skopiować logu: {0}"
         "Status.ValidationPasswordCleared" = "Wyczyszczono hasło walidacji."
         "Status.ChangeFieldsCleared" = "Wyczyszczono pola zmiany hasła."
         "Status.EnterValidationData" = "Podaj domenę/DC, login i hasło do walidacji."
@@ -2292,7 +2279,7 @@ $script:Translations = @{
         "Splash.Author" = "Author: {0}"
         "Splash.Version" = "VERSION {0}"
         "Splash.Loading" = "Loading interface..."
-        "Header.Subtitle" = "Password validation and change, account properties, groups, managed accounts, log"
+        "Header.Subtitle" = "Password validation and change, account properties, groups and managed accounts"
         "Header.Author" = "Author: {0}"
         "Busy.Title" = "Processing"
         "Busy.Message" = "Please wait..."
@@ -2346,7 +2333,6 @@ $script:Translations = @{
         "Tab.AccountGroups" = "Account groups"
         "Tab.GroupMembers" = "Group members"
         "Tab.ManagedGroups" = "Managed groups"
-        "Tab.Log" = "Log"
         "Validation.Title" = "Password validation"
         "Validation.Password" = "Password:"
         "Validation.ShowPassword" = "Show password"
@@ -2366,10 +2352,6 @@ $script:Translations = @{
         "Common.CopyNames" = "Copy names"
         "Common.Search" = "Search:"
         "Common.ExportVisibleInfo" = "The export includes the currently visible rows."
-        "Common.Log" = "Log"
-        "Common.ClearLog" = "Clear log"
-        "Common.CopyLog" = "Copy log"
-        "Log.Events" = "Event log"
         "AccountProperties.Get" = "Get properties"
         "AccountProperties.Info" = "Displays LDAP account attributes without RSAT, similar to Get-ADUser -Properties *."
         "AccountProperties.CopyValues" = "Copy values"
@@ -2453,10 +2435,6 @@ $script:Translations = @{
         "Status.ClipboardFailed" = "Could not copy to the clipboard: {0}"
         "Status.ReadyShort" = "Ready."
         "Status.Ready" = "Ready. Enter a domain/DC and login."
-        "Status.LogCleared" = "Log cleared."
-        "Status.LogEmpty" = "The log is empty."
-        "Status.LogCopied" = "Log copied to the clipboard."
-        "Status.LogCopyFailed" = "Could not copy the log: {0}"
         "Status.ValidationPasswordCleared" = "Validation password cleared."
         "Status.ChangeFieldsCleared" = "Password change fields cleared."
         "Status.EnterValidationData" = "Enter the domain/DC, login, and password to validate."
@@ -2841,52 +2819,20 @@ function New-CardGroup {
     return $grp
 }
 
-function Write-Log {
-    param(
-        [string]$Text,
-        [ValidateSet("INFO", "OK", "WARN", "ERROR")]
-        [string]$Level = "INFO"
-    )
-
-    $stamp = Get-Date -Format "HH:mm:ss"
-    $line = "[$stamp][$Level] $Text"
-
-    try {
-        $targets = @()
-        if ($null -ne $script:txtLogs -and @($script:txtLogs).Count -gt 0) {
-            $targets = @($script:txtLogs)
-        }
-        elseif ($null -ne $script:txtLog) {
-            $targets = @($script:txtLog)
-        }
-
-        foreach ($logBox in $targets) {
-            if ($null -ne $logBox -and -not $logBox.IsDisposed) {
-                $logBox.AppendText($line + [Environment]::NewLine)
-                $logBox.SelectionStart = $logBox.TextLength
-                $logBox.ScrollToCaret()
-            }
-        }
-    }
-    catch { }
-}
-
 function Set-Status {
     param(
         [string]$Text,
         [ValidateSet("Info", "Ok", "Warn", "Error")]
-        [string]$Kind = "Info",
-        [bool]$ToLog = $true
+        [string]$Kind = "Info"
     )
 
     $color = $script:Theme.Text
-    $level = "INFO"
 
     switch ($Kind) {
-        "Ok"    { $color = $script:Theme.Good; $level = "OK" }
-        "Warn"  { $color = $script:Theme.Warn; $level = "WARN" }
-        "Error" { $color = $script:Theme.Bad;  $level = "ERROR" }
-        default  { $color = $script:Theme.Text; $level = "INFO" }
+        "Ok"    { $color = $script:Theme.Good }
+        "Warn"  { $color = $script:Theme.Warn }
+        "Error" { $color = $script:Theme.Bad }
+        default  { $color = $script:Theme.Text }
     }
 
     try {
@@ -2897,7 +2843,6 @@ function Set-Status {
     }
     catch { }
 
-    if ($ToLog) { Write-Log -Text $Text -Level $level }
     try { [System.Windows.Forms.Application]::DoEvents() } catch { }
 }
 
@@ -5379,10 +5324,6 @@ $tabManagedGroups = New-Object System.Windows.Forms.TabPage
 $tabManagedGroups.Text = Get-UiText "Tab.ManagedGroups"
 $tabManagedGroups.BackColor = $script:Theme.Back
 
-$tabLog = New-Object System.Windows.Forms.TabPage
-$tabLog.Text = Get-UiText "Tab.Log"
-$tabLog.BackColor = $script:Theme.Back
-
 [void]$tabs.TabPages.Add($tabValidate)
 [void]$tabs.TabPages.Add($tabChange)
 [void]$tabs.TabPages.Add($tabAccountProps)
@@ -5390,7 +5331,6 @@ $tabLog.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabGroupMembers)
 [void]$tabs.TabPages.Add($tabManagedGroups)
 [void]$tabs.TabPages.Add($tabManager)
-[void]$tabs.TabPages.Add($tabLog)
 
 $script:PreservedAccountLogin = ""
 $script:PreservedGroupName = ""
@@ -5436,23 +5376,6 @@ $lblValidateHint.ForeColor = $script:Theme.Muted
 $lblValidateHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpValidate.Controls.AddRange(@($lblValidatePassword, $txtValidatePassword, $chkShowValidatePassword, $btnValidate, $btnClearValidate, $lblValidateHint))
 
-$grpLogValidate = New-CardGroup (Get-UiText "Common.Log") 18 185 1042 415
-$grpLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogValidate = New-Object System.Windows.Forms.TextBox
-$txtLogValidate.Location = New-Point 16 26
-$txtLogValidate.Size = New-Size 1010 360
-$txtLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogValidate.Multiline = $true
-$txtLogValidate.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogValidate.ReadOnly = $true
-$txtLogValidate.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogValidate.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogValidate.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogValidate = New-SoftButton (Get-UiText "Common.ClearLog") 906 386 120 28
-$btnClearLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$grpLogValidate.Controls.AddRange(@($txtLogValidate, $btnClearLogValidate))
-
 # ---- Password change tab ----
 $grpChange = New-CardGroup (Get-UiText "Change.Title") 18 18 1042 210
 $grpChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
@@ -5478,52 +5401,8 @@ $lblChangeHint.ForeColor = $script:Theme.Muted
 $lblChangeHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpChange.Controls.AddRange(@($lblOldPassword, $txtOldPassword, $lblNewPassword, $txtNewPassword, $lblRepeatPassword, $txtRepeatPassword, $chkShowPasswords, $btnChange, $btnClearChange, $lblChangeHint))
 
-$grpLogChange = New-CardGroup (Get-UiText "Common.Log") 18 245 1042 355
-$grpLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogChange = New-Object System.Windows.Forms.TextBox
-$txtLogChange.Location = New-Point 16 26
-$txtLogChange.Size = New-Size 1010 300
-$txtLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogChange.Multiline = $true
-$txtLogChange.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogChange.ReadOnly = $true
-$txtLogChange.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogChange.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogChange.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogChange = New-SoftButton (Get-UiText "Common.ClearLog") 906 326 120 28
-$btnClearLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$grpLogChange.Controls.AddRange(@($txtLogChange, $btnClearLogChange))
-
-# ---- Log tab ----
-$grpLogGlobal = New-CardGroup (Get-UiText "Log.Events") 18 18 1042 582
-$grpLogGlobal.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogMain = New-Object System.Windows.Forms.TextBox
-$txtLogMain.Location = New-Point 16 26
-$txtLogMain.Size = New-Size 1010 505
-$txtLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogMain.Multiline = $true
-$txtLogMain.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogMain.ReadOnly = $true
-$txtLogMain.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogMain.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogMain.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-
-$btnCopyLogMain = New-SoftButton (Get-UiText "Common.CopyLog") 770 540 120 28
-$btnCopyLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$btnClearLogMain = New-SoftButton (Get-UiText "Common.ClearLog") 906 540 120 28
-$btnClearLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$grpLogGlobal.Controls.AddRange(@($txtLogMain, $btnCopyLogMain, $btnClearLogMain))
-
-$script:txtLog = $txtLogMain
-$script:txtLogs = @($txtLogMain)
-
 $tabValidate.Controls.AddRange(@($grpValidate))
 $tabChange.Controls.AddRange(@($grpChange))
-$tabLog.Controls.Add($grpLogGlobal)
 
 # ---- Account properties tab ----
 $accountPropsTop = New-Object System.Windows.Forms.Panel
@@ -6304,29 +6183,6 @@ $btnExit.Add_Click({
     $form.Close()
 })
 
-$btnClearLogMain.Add_Click({
-    try {
-        if ($null -ne $txtLogMain) { $txtLogMain.Clear() }
-    }
-    catch { }
-    Set-Status (Get-UiText "Status.LogCleared") "Info" $false
-})
-
-$btnCopyLogMain.Add_Click({
-    try {
-        if ($null -eq $txtLogMain -or (Is-Blank $txtLogMain.Text)) {
-            Set-Status (Get-UiText "Status.LogEmpty") "Warn"
-            return
-        }
-
-        [System.Windows.Forms.Clipboard]::SetText($txtLogMain.Text)
-        Set-Status (Get-UiText "Status.LogCopied") "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.LogCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
 $btnClearValidate.Add_Click({
     $txtValidatePassword.Clear()
     Set-Status (Get-UiText "Status.ValidationPasswordCleared") "Info"
@@ -6755,14 +6611,6 @@ $rdoManagedActive.Add_CheckedChanged({ if ($rdoManagedActive.Checked) { Update-M
 $rdoManagedInactive.Add_CheckedChanged({ if ($rdoManagedInactive.Checked) { Update-ManagedAccountsFilterView } })
 $txtManagedSearch.Add_TextChanged({ Update-ManagedAccountsFilterView })
 
-$form.Add_KeyDown({
-    param($sender, $e)
-    if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::L) {
-        try { if ($null -ne $txtLogMain) { $txtLogMain.Clear() } } catch { }
-        $e.Handled = $true
-    }
-})
-
 $form.Add_Shown({
     Set-Status (Get-UiText "Status.Ready") "Info"
     try { $txtLogin.Focus() } catch { }
@@ -6770,7 +6618,7 @@ $form.Add_Shown({
 
 $form.Add_FormClosed({
     try {
-        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $txtLogMain, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
+        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
             if ($null -ne $ctrl) { $ctrl.Dispose() }
         }
         if ($null -ne $script:BrandImage) {

@@ -3,7 +3,7 @@
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.2"
+$script:AppVersion = "2.15.3"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
@@ -18,8 +18,6 @@ $script:ManagedGroupRows = @()
 $script:ManagedGroupRowsLoaded = $false
 $script:MainForm = $null
 $script:StatusLabel = $null
-$script:txtLog = $null
-$script:txtLogs = @()
 $script:AppWindowIcon = $null
 $script:BrandImageStream = $null
 $script:BrandImage = $null

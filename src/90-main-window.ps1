@@ -165,10 +165,6 @@ $tabManagedGroups = New-Object System.Windows.Forms.TabPage
 $tabManagedGroups.Text = Get-UiText "Tab.ManagedGroups"
 $tabManagedGroups.BackColor = $script:Theme.Back
 
-$tabLog = New-Object System.Windows.Forms.TabPage
-$tabLog.Text = Get-UiText "Tab.Log"
-$tabLog.BackColor = $script:Theme.Back
-
 [void]$tabs.TabPages.Add($tabValidate)
 [void]$tabs.TabPages.Add($tabChange)
 [void]$tabs.TabPages.Add($tabAccountProps)
@@ -176,7 +172,6 @@ $tabLog.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabGroupMembers)
 [void]$tabs.TabPages.Add($tabManagedGroups)
 [void]$tabs.TabPages.Add($tabManager)
-[void]$tabs.TabPages.Add($tabLog)
 
 $script:PreservedAccountLogin = ""
 $script:PreservedGroupName = ""
@@ -222,23 +217,6 @@ $lblValidateHint.ForeColor = $script:Theme.Muted
 $lblValidateHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpValidate.Controls.AddRange(@($lblValidatePassword, $txtValidatePassword, $chkShowValidatePassword, $btnValidate, $btnClearValidate, $lblValidateHint))
 
-$grpLogValidate = New-CardGroup (Get-UiText "Common.Log") 18 185 1042 415
-$grpLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogValidate = New-Object System.Windows.Forms.TextBox
-$txtLogValidate.Location = New-Point 16 26
-$txtLogValidate.Size = New-Size 1010 360
-$txtLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogValidate.Multiline = $true
-$txtLogValidate.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogValidate.ReadOnly = $true
-$txtLogValidate.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogValidate.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogValidate.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogValidate = New-SoftButton (Get-UiText "Common.ClearLog") 906 386 120 28
-$btnClearLogValidate.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$grpLogValidate.Controls.AddRange(@($txtLogValidate, $btnClearLogValidate))
-
 # ---- Password change tab ----
 $grpChange = New-CardGroup (Get-UiText "Change.Title") 18 18 1042 210
 $grpChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
@@ -264,52 +242,8 @@ $lblChangeHint.ForeColor = $script:Theme.Muted
 $lblChangeHint.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
 $grpChange.Controls.AddRange(@($lblOldPassword, $txtOldPassword, $lblNewPassword, $txtNewPassword, $lblRepeatPassword, $txtRepeatPassword, $chkShowPasswords, $btnChange, $btnClearChange, $lblChangeHint))
 
-$grpLogChange = New-CardGroup (Get-UiText "Common.Log") 18 245 1042 355
-$grpLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogChange = New-Object System.Windows.Forms.TextBox
-$txtLogChange.Location = New-Point 16 26
-$txtLogChange.Size = New-Size 1010 300
-$txtLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogChange.Multiline = $true
-$txtLogChange.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogChange.ReadOnly = $true
-$txtLogChange.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogChange.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogChange.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-$btnClearLogChange = New-SoftButton (Get-UiText "Common.ClearLog") 906 326 120 28
-$btnClearLogChange.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$grpLogChange.Controls.AddRange(@($txtLogChange, $btnClearLogChange))
-
-# ---- Log tab ----
-$grpLogGlobal = New-CardGroup (Get-UiText "Log.Events") 18 18 1042 582
-$grpLogGlobal.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$txtLogMain = New-Object System.Windows.Forms.TextBox
-$txtLogMain.Location = New-Point 16 26
-$txtLogMain.Size = New-Size 1010 505
-$txtLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-$txtLogMain.Multiline = $true
-$txtLogMain.ScrollBars = [System.Windows.Forms.ScrollBars]::Vertical
-$txtLogMain.ReadOnly = $true
-$txtLogMain.BackColor = [System.Drawing.Color]::FromArgb(250, 252, 255)
-$txtLogMain.Font = New-Object System.Drawing.Font("Consolas", 9)
-$txtLogMain.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-
-$btnCopyLogMain = New-SoftButton (Get-UiText "Common.CopyLog") 770 540 120 28
-$btnCopyLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$btnClearLogMain = New-SoftButton (Get-UiText "Common.ClearLog") 906 540 120 28
-$btnClearLogMain.Anchor = [System.Windows.Forms.AnchorStyles]::Right -bor [System.Windows.Forms.AnchorStyles]::Bottom
-
-$grpLogGlobal.Controls.AddRange(@($txtLogMain, $btnCopyLogMain, $btnClearLogMain))
-
-$script:txtLog = $txtLogMain
-$script:txtLogs = @($txtLogMain)
-
 $tabValidate.Controls.AddRange(@($grpValidate))
 $tabChange.Controls.AddRange(@($grpChange))
-$tabLog.Controls.Add($grpLogGlobal)
 
 # ---- Account properties tab ----
 $accountPropsTop = New-Object System.Windows.Forms.Panel

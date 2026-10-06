@@ -6,29 +6,6 @@ $btnExit.Add_Click({
     $form.Close()
 })
 
-$btnClearLogMain.Add_Click({
-    try {
-        if ($null -ne $txtLogMain) { $txtLogMain.Clear() }
-    }
-    catch { }
-    Set-Status (Get-UiText "Status.LogCleared") "Info" $false
-})
-
-$btnCopyLogMain.Add_Click({
-    try {
-        if ($null -eq $txtLogMain -or (Is-Blank $txtLogMain.Text)) {
-            Set-Status (Get-UiText "Status.LogEmpty") "Warn"
-            return
-        }
-
-        [System.Windows.Forms.Clipboard]::SetText($txtLogMain.Text)
-        Set-Status (Get-UiText "Status.LogCopied") "Ok"
-    }
-    catch {
-        Set-Status (Get-UiText "Status.LogCopyFailed" @($_.Exception.Message)) "Error"
-    }
-})
-
 $btnClearValidate.Add_Click({
     $txtValidatePassword.Clear()
     Set-Status (Get-UiText "Status.ValidationPasswordCleared") "Info"
@@ -457,14 +434,6 @@ $rdoManagedActive.Add_CheckedChanged({ if ($rdoManagedActive.Checked) { Update-M
 $rdoManagedInactive.Add_CheckedChanged({ if ($rdoManagedInactive.Checked) { Update-ManagedAccountsFilterView } })
 $txtManagedSearch.Add_TextChanged({ Update-ManagedAccountsFilterView })
 
-$form.Add_KeyDown({
-    param($sender, $e)
-    if ($e.Control -and $e.KeyCode -eq [System.Windows.Forms.Keys]::L) {
-        try { if ($null -ne $txtLogMain) { $txtLogMain.Clear() } } catch { }
-        $e.Handled = $true
-    }
-})
-
 $form.Add_Shown({
     Set-Status (Get-UiText "Status.Ready") "Info"
     try { $txtLogin.Focus() } catch { }
@@ -472,7 +441,7 @@ $form.Add_Shown({
 
 $form.Add_FormClosed({
     try {
-        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $txtLogMain, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
+        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
             if ($null -ne $ctrl) { $ctrl.Dispose() }
         }
         if ($null -ne $script:BrandImage) {

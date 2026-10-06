@@ -20,7 +20,6 @@ public class KombajnColorTabControlV21 : TabControl
     public Color AccountGroupsTabColor = Color.FromArgb(0, 92, 185);
     public Color GroupMembersTabColor = Color.FromArgb(185, 42, 94);
     public Color ManagedGroupsTabColor = Color.FromArgb(82, 104, 201);
-    public Color LogTabColor = Color.FromArgb(150, 92, 18);
     public Color InactiveTextColor = Color.FromArgb(45, 55, 70);
     public Color SelectedTextColor = Color.White;
 
@@ -40,7 +39,6 @@ public class KombajnColorTabControlV21 : TabControl
         if (index == 4) return GroupMembersTabColor;
         if (index == 5) return ManagedGroupsTabColor;
         if (index == 6) return ManagerTabColor;
-        if (index == 7) return LogTabColor;
         return Color.FromArgb(95, 105, 120);
     }
 

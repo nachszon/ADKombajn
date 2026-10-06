@@ -8,6 +8,18 @@ The project follows Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
+## [2.15.3] - 2026-10-06
+
+### Removed
+
+- Removed the obsolete **Log** tab and the in-application operation logging mechanism ([#30](https://github.com/nachszon/ADKombajn/issues/30)).
+- Removed unused log controls, actions, localization entries and the `Ctrl+L` shortcut.
+
+### Changed
+
+- Preserved all user-facing status bar messages, dialog boxes, confirmations and progress indicators.
+- Updated the application, demo, build configuration and documentation for version 2.15.3.
+
 ## [2.15.2] - 2026-09-30
 
 ### Added
