@@ -8,6 +8,24 @@ The project follows Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
+## [2.16.0] - Unreleased
+
+### Fixed
+
+- Re-enabled the main window before closing Group properties retrieval progress, allowing focus to return to ADKombajn after success or failure.
+
+### Added
+
+- Added **Group properties / Właściwości grupy** as the fifth tab, directly after **Account groups**.
+- Added read-only group LDAP attributes, attribute-name filtering, value copying, CSV/XLSX export and retrieval progress in Polish and English.
+- Added ranged retrieval for large multi-valued group attributes; incomplete retrieval produces an error instead of displaying partial data as complete.
+- Added fictional group properties to the offline demo using the current application interface.
+
+### Changed
+
+- Omitted `member` (including ranged variants) from Group properties; use **Group members** for the member list. Retained `memberOf`.
+- Shared the group-name context between **Group properties** and **Group members**, preserving the account login when switching back to account tabs.
+
 ## [2.15.3] - 2026-10-06
 
 ### Removed

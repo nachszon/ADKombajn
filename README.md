@@ -21,13 +21,14 @@ ADKombajn currently provides:
 * password change using the LDAP `unicodePwd` operation
 * account status, expiration information, and LDAP properties
 * account group membership view
+* read-only group LDAP properties, including multi-valued attributes; `member` is omitted because group members have a dedicated tab
 * domain group members view
 * accounts assigned to the selected user as manager
 * groups managed by the selected user
-* real-time searching of account properties, account groups, managed groups, and managed account results
+* real-time searching of account and group properties, account groups, managed groups, and managed account results
 * CSV and XLSX export of the currently visible rows from these result tabs
 * copy-friendly actions for account logins, group names, and individual attribute values
-* progress indicators for directory retrieval, including account properties and managed accounts
+* progress indicators for directory retrieval, including account properties, group properties and managed accounts
 * Polish and English user interface
 
 ADKombajn uses built-in .NET Directory Services and LDAP APIs. It does not require RSAT or the ActiveDirectory PowerShell module.
@@ -157,7 +158,7 @@ Build using the version defined by default in `build.ps1`:
 Or specify the four-part executable version explicitly:
 
 ```powershell
-.\build.ps1 -Version "2.15.3.0"
+.\build.ps1 -Version "2.16.0.0"
 ```
 
 The build script:
@@ -246,7 +247,7 @@ Run the assembled file on Windows PowerShell 5.1 and check both languages and th
 powershell.exe -ExecutionPolicy Bypass -File .\ADKombajn.ps1 -Language en
 ```
 
-To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.15.3.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
+To assemble and compile the x64 EXE, import PS2EXE and run `.\build.ps1` (or pass `-Version "2.16.0.0"`). Each build regenerates `ADKombajn.ps1` from `src/`; **do not edit the generated script directly**. Commit the generated script together with source changes so PS1 users can still download one file. Keep source files as UTF-8 with BOM; the assembled script is also written with BOM. Test the script and EXE on Windows before publishing. The demo script is a separate fixture and is not included in the production build.
 
 ## Versioning
 
@@ -256,7 +257,7 @@ The project uses Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-For example, release `2.15.3` is built with the four-part Windows executable version `2.15.3.0`.
+For example, release `2.16.0` is built with the four-part Windows executable version `2.16.0.0`.
 
 * **MAJOR** — incompatible changes or a major application redesign
 * **MINOR** — new functionality compatible with the current version
