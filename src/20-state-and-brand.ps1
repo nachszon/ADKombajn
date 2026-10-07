@@ -3,13 +3,15 @@
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.3"
+$script:AppVersion = "2.16.0"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
 $script:ManagedRowsLoaded = $false
 $script:AccountPropertyRows = @()
 $script:AccountPropertyRowsLoaded = $false
+$script:GroupPropertyRows = @()
+$script:GroupPropertyRowsLoaded = $false
 $script:AccountGroupRows = @()
 $script:AccountGroupRowsLoaded = $false
 $script:DomainGroupMemberRows = @()

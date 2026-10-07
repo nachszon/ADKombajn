@@ -11,19 +11,20 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-public class KombajnColorTabControlV21 : TabControl
+public class KombajnColorTabControlV22 : TabControl
 {
     public Color ValidateTabColor = Color.FromArgb(0, 135, 86);
     public Color ChangeTabColor   = Color.FromArgb(214, 126, 28);
     public Color ManagerTabColor  = Color.FromArgb(35, 98, 170);
     public Color AccountPropsTabColor = Color.FromArgb(0, 140, 132);
     public Color AccountGroupsTabColor = Color.FromArgb(0, 92, 185);
+    public Color GroupPropsTabColor = Color.FromArgb(125, 78, 160);
     public Color GroupMembersTabColor = Color.FromArgb(185, 42, 94);
     public Color ManagedGroupsTabColor = Color.FromArgb(82, 104, 201);
     public Color InactiveTextColor = Color.FromArgb(45, 55, 70);
     public Color SelectedTextColor = Color.White;
 
-    public KombajnColorTabControlV21()
+    public KombajnColorTabControlV22()
     {
         this.DrawMode = TabDrawMode.OwnerDrawFixed;
         this.SizeMode = TabSizeMode.Normal;
@@ -36,9 +37,10 @@ public class KombajnColorTabControlV21 : TabControl
         if (index == 1) return ChangeTabColor;
         if (index == 2) return AccountPropsTabColor;
         if (index == 3) return AccountGroupsTabColor;
-        if (index == 4) return GroupMembersTabColor;
-        if (index == 5) return ManagedGroupsTabColor;
-        if (index == 6) return ManagerTabColor;
+        if (index == 4) return GroupPropsTabColor;
+        if (index == 5) return GroupMembersTabColor;
+        if (index == 6) return ManagedGroupsTabColor;
+        if (index == 7) return ManagerTabColor;
         return Color.FromArgb(95, 105, 120);
     }
 

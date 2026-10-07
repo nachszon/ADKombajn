@@ -1116,6 +1116,96 @@ function Find-AdGroupBasicNoRsat {
     }
 }
 
+function Get-AdGroupAllPropertiesNoRsat {
+    param(
+        [string]$DomainOrDc,
+        [string]$GroupIdentity,
+        $ProgressWindow = $null
+    )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindGroup") -Detail "$DomainOrDc\$GroupIdentity" -Marquee $true
+    $group = Find-AdGroupBasicNoRsat -DomainOrDc $DomainOrDc -GroupIdentity $GroupIdentity
+    if ($null -eq $group -or (Is-Blank $group.DistinguishedName)) {
+        throw (Get-UiText "Error.GroupNotFound" @($DomainOrDc, $GroupIdentity))
+    }
+
+    $root = $null
+    $searcher = $null
+    try {
+        $root = New-Object System.DirectoryServices.DirectoryEntry((Get-LdapBasePath -DomainOrDc $DomainOrDc))
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher($root)
+        $searcher.SearchScope = [System.DirectoryServices.SearchScope]::Subtree
+        $escapedDn = Escape-LdapFilterValue -Value $group.DistinguishedName
+        $searcher.Filter = "(&(objectClass=group)(distinguishedName=$escapedDn))"
+        [void]$searcher.PropertiesToLoad.Add("*")
+        $result = $searcher.FindOne()
+        if ($null -eq $result) {
+            throw (Get-UiText "Error.GroupNotFound" @($DomainOrDc, $GroupIdentity))
+        }
+
+        $props = $result.Properties
+        # Members have a dedicated tab. Exclude both plain and ranged member
+        # before processing attributes, so no additional member ranges are fetched.
+        $propertyNames = @($props.PropertyNames | Where-Object {
+            $_ -ine "member" -and $_ -notlike "member;range=*"
+        } | Sort-Object)
+        $rangedNames = @{}
+        foreach ($name in $propertyNames) {
+            if ($name -match '^(.+);range=\d+-(\d+|\*)$') { $rangedNames[$Matches[1]] = $true }
+        }
+        $rows = New-Object System.Collections.Generic.List[object]
+        $index = 0
+        foreach ($name in $propertyNames) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadGroup") -Detail "$index / $($propertyNames.Count)" -Value $index -Maximum $propertyNames.Count
+            $attribute = [string]$name
+            # AD can return an empty unqualified name alongside a range.
+            if ($rangedNames.ContainsKey($attribute)) { continue }
+            $values = New-Object System.Collections.Generic.List[object]
+            foreach ($value in $props[$name]) { $values.Add($value) }
+
+            if ($name -match '^(.+);range=(\d+)-(\d+|\*)$') {
+                $attribute = $Matches[1]
+                $first = [int]$Matches[2]
+                $last = $Matches[3]
+                if ($first -ne 0) { throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute)) }
+                # Advance using the actual server range, not a fixed page size.
+                while ($last -ne '*') {
+                    $next = [int]$last + 1
+                    $searcher.PropertiesToLoad.Clear()
+                    [void]$searcher.PropertiesToLoad.Add("${attribute};range=$next-*")
+                    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadGroup") -Detail "${attribute}: $($values.Count)" -Marquee $true
+                    $page = $searcher.FindOne()
+                    $rangeName = $null
+                    if ($null -ne $page) {
+                        foreach ($candidate in $page.Properties.PropertyNames) {
+                            if ($candidate -match ('^' + [regex]::Escape($attribute) + ';range=(\d+)-(\d+|\*)$')) {
+                                $pageStart = [int]$Matches[1]
+                                $pageEnd = $Matches[2]
+                                if ($pageStart -ne $next -or ($pageEnd -ne '*' -and [int]$pageEnd -lt $pageStart)) {
+                                    throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute))
+                                }
+                                $rangeName = [string]$candidate
+                                $last = $pageEnd
+                                break
+                            }
+                        }
+                    }
+                    if ($null -eq $rangeName) { throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute)) }
+                    foreach ($value in $page.Properties[$rangeName]) { $values.Add($value) }
+                }
+            }
+            $rows.Add((New-AccountPropertyRow -Attribute $attribute -Value (Convert-AdPropertyValueToText -Name $attribute -Value $values) -Count $values.Count))
+        }
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
+        return @($rows.ToArray() | Sort-Object -Property Attribute)
+    }
+    finally {
+        if ($null -ne $searcher) { $searcher.Dispose() }
+        if ($null -ne $root) { $root.Dispose() }
+    }
+}
+
 function Get-AdGroupMemberDistinguishedNamesNoRsat {
     param(
         [string]$DomainOrDc,
