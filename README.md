@@ -10,7 +10,7 @@ The application is written in PowerShell, uses a graphical Windows interface, an
 
 ## Demo
 
-https://github.com/user-attachments/assets/4ddd26b3-0e9a-425c-bbb3-9d32eb9baeff
+https://github.com/user-attachments/assets/88dbc92f-c516-4fe0-89b7-4b961a8c4ae5
 
 ## Features
 
