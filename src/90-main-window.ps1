@@ -123,7 +123,7 @@ $grpContext.Controls.AddRange(@($lblDomain, $txtDomain, $lblLogin, $txtLogin, $c
 $contextPanel.Controls.Add($grpContext)
 
 try {
-    $tabs = New-Object KombajnColorTabControlV21
+    $tabs = New-Object KombajnColorTabControlV22
 }
 catch {
     $tabs = New-Object System.Windows.Forms.TabControl
@@ -157,6 +157,10 @@ $tabAccountGroups = New-Object System.Windows.Forms.TabPage
 $tabAccountGroups.Text = Get-UiText "Tab.AccountGroups"
 $tabAccountGroups.BackColor = $script:Theme.Back
 
+$tabGroupProps = New-Object System.Windows.Forms.TabPage
+$tabGroupProps.Text = Get-UiText "Tab.GroupProperties"
+$tabGroupProps.BackColor = $script:Theme.Back
+
 $tabGroupMembers = New-Object System.Windows.Forms.TabPage
 $tabGroupMembers.Text = Get-UiText "Tab.GroupMembers"
 $tabGroupMembers.BackColor = $script:Theme.Back
@@ -169,6 +173,7 @@ $tabManagedGroups.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabChange)
 [void]$tabs.TabPages.Add($tabAccountProps)
 [void]$tabs.TabPages.Add($tabAccountGroups)
+[void]$tabs.TabPages.Add($tabGroupProps)
 [void]$tabs.TabPages.Add($tabGroupMembers)
 [void]$tabs.TabPages.Add($tabManagedGroups)
 [void]$tabs.TabPages.Add($tabManager)
@@ -178,9 +183,9 @@ $script:PreservedGroupName = ""
 $script:IsGroupContextActive = $false
 
 $tabs.Add_SelectedIndexChanged({
-    $isGroupMembersTab = ($tabs.SelectedTab -eq $tabGroupMembers)
+    $isGroupTab = (($tabs.SelectedTab -eq $tabGroupMembers) -or ($tabs.SelectedTab -eq $tabGroupProps))
 
-    if ($isGroupMembersTab -and -not $script:IsGroupContextActive) {
+    if ($isGroupTab -and -not $script:IsGroupContextActive) {
         $script:PreservedAccountLogin = $txtLogin.Text
         $txtLogin.Text = $script:PreservedGroupName
         $lblLogin.Text = Get-UiText "Context.GroupName"
@@ -188,7 +193,7 @@ $tabs.Add_SelectedIndexChanged({
         return
     }
 
-    if (-not $isGroupMembersTab -and $script:IsGroupContextActive) {
+    if (-not $isGroupTab -and $script:IsGroupContextActive) {
         $script:PreservedGroupName = $txtLogin.Text
         $txtLogin.Text = $script:PreservedAccountLogin
         $lblLogin.Text = Get-UiText "Context.AccountLogin"
@@ -304,6 +309,66 @@ $gridAccountProps.Columns[2].FillWeight = 6
 
 $tabAccountProps.Controls.Add($gridAccountProps)
 $tabAccountProps.Controls.Add($accountPropsTop)
+
+# ---- Group properties tab ----
+$groupPropsTop = New-Object System.Windows.Forms.Panel
+$groupPropsTop.Dock = [System.Windows.Forms.DockStyle]::Top
+$groupPropsTop.Height = 92
+$groupPropsTop.BackColor = $script:Theme.Back
+
+$btnGetGroupProps = New-FlatButton (Get-UiText "GroupProperties.Get") 18 16 160 34
+$btnClearGroupProps = New-SoftButton (Get-UiText "Common.Clear") 188 16 95 34
+$btnExportGroupPropsCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 293 16 112 34
+$btnExportGroupPropsXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 415 16 118 34
+$btnCopyGroupPropertyValues = New-SoftButton (Get-UiText "GroupProperties.CopyValues") 543 16 130 34
+
+$lblGroupPropsSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtGroupPropsSearch = New-TextBoxEx 73 57 250 $false
+
+$lblGroupPropsInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblGroupPropsInfo.ForeColor = $script:Theme.Muted
+
+$lblGroupPropsCount = New-Label (Get-UiText "GroupProperties.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblGroupPropsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
+$lblGroupPropsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+
+$groupPropsTop.Controls.AddRange(@($btnGetGroupProps, $btnClearGroupProps, $btnExportGroupPropsCsv, $btnExportGroupPropsXlsx, $btnCopyGroupPropertyValues, $lblGroupPropsSearch, $txtGroupPropsSearch, $lblGroupPropsInfo, $lblGroupPropsCount))
+
+$gridGroupProps = New-Object System.Windows.Forms.DataGridView
+$gridGroupProps.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gridGroupProps.AutoGenerateColumns = $false
+$gridGroupProps.ColumnHeadersVisible = $true
+$gridGroupProps.BackgroundColor = [System.Drawing.Color]::White
+$gridGroupProps.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$gridGroupProps.ReadOnly = $true
+$gridGroupProps.AllowUserToAddRows = $false
+$gridGroupProps.AllowUserToDeleteRows = $false
+$gridGroupProps.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gridGroupProps.MultiSelect = $true
+$gridGroupProps.RowHeadersVisible = $false
+$gridGroupProps.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+$gridGroupProps.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+$gridGroupProps.Font = New-UiFont 9
+$gridGroupProps.ColumnHeadersDefaultCellStyle.Font = New-UiFont 9 ([System.Drawing.FontStyle]::Bold)
+$gridGroupProps.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(100, 62, 128)
+$gridGroupProps.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::White
+$gridGroupProps.ColumnHeadersDefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(100, 62, 128)
+$gridGroupProps.EnableHeadersVisualStyles = $false
+$gridGroupProps.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(245, 249, 253)
+$gridGroupProps.GridColor = $script:Theme.Border
+$gridGroupProps.RowTemplate.Height = 25
+$gridGroupProps.DefaultCellStyle.WrapMode = [System.Windows.Forms.DataGridViewTriState]::False
+Set-DoubleBuffered $gridGroupProps
+
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Attribute" (Get-UiText "Column.Attribute") 230 $true))
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Value" (Get-UiText "Column.Value") 720 $true))
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Count" (Get-UiText "Column.Count") 60 $true))
+$gridGroupProps.Columns[0].FillWeight = 24
+$gridGroupProps.Columns[1].FillWeight = 70
+$gridGroupProps.Columns[2].FillWeight = 6
+
+$tabGroupProps.Controls.Add($gridGroupProps)
+$tabGroupProps.Controls.Add($groupPropsTop)
 
 # ---- Account groups tab ----
 $accountGroupsTop = New-Object System.Windows.Forms.Panel
@@ -689,6 +754,124 @@ function Export-AccountPropertiesWithDialog {
         -FileNameBase (Get-UiText "Export.AccountPropertiesFileNameBase") `
         -SheetName (Get-UiText "Export.AccountPropertiesSheetName") `
         -SaveTitle (Get-UiText "Export.AccountPropertiesSaveTitle") `
+        -Widths @(28, 80, 10)
+}
+
+function Set-GroupPropertiesGrid {
+    param([object[]]$Rows)
+
+    $gridGroupProps.SuspendLayout()
+    try {
+        $gridGroupProps.Rows.Clear()
+        if ($null -ne $Rows) {
+            foreach ($row in $Rows) {
+                [void]$gridGroupProps.Rows.Add(
+                    [string]$row.Attribute,
+                    [string]$row.Value,
+                    [string]$row.Count
+                )
+            }
+        }
+        $gridGroupProps.ClearSelection()
+    }
+    finally {
+        $gridGroupProps.ResumeLayout()
+    }
+}
+
+function Filter-GroupPropertyRows {
+    param([object[]]$Rows)
+
+    if ($null -eq $Rows) { return @() }
+    $query = ""
+    try { $query = $txtGroupPropsSearch.Text.Trim() } catch { }
+    if (Is-Blank $query) { return @($Rows) }
+
+    $q = $query.ToLowerInvariant()
+    return @($Rows | Where-Object {
+        ([string]$_.Attribute).ToLowerInvariant().Contains($q)
+    })
+}
+
+function Refresh-GroupPropertiesGrid {
+    $filteredRows = @(Filter-GroupPropertyRows -Rows $script:GroupPropertyRows)
+    $totalCount = @($script:GroupPropertyRows).Count
+    Set-GroupPropertiesGrid -Rows $filteredRows
+
+    if (Is-Blank $txtGroupPropsSearch.Text) {
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.Count" @($filteredRows.Count)
+    }
+    else {
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-GroupPropertiesSearchView {
+    if (-not $script:GroupPropertyRowsLoaded) { return }
+    $visibleCount = Refresh-GroupPropertiesGrid
+    $totalCount = @($script:GroupPropertyRows).Count
+    Set-Status (Get-UiText "Status.GroupPropertiesSearch" @($txtGroupPropsSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleGroupPropertyRows {
+    if (-not $script:GroupPropertyRowsLoaded) { return @() }
+    return @(Filter-GroupPropertyRows -Rows $script:GroupPropertyRows)
+}
+
+function Copy-SelectedGroupPropertyValues {
+    try {
+        $selectedRows = @($gridGroupProps.SelectedRows | Where-Object {
+            $null -ne $_ -and -not $_.IsNewRow
+        } | Sort-Object -Property Index)
+
+        if ($selectedRows.Count -eq 0) {
+            Show-InfoBox (Get-UiText "Status.SelectRow") (Get-UiText "Dialog.NoSelection")
+            return
+        }
+
+        $values = @($selectedRows | ForEach-Object {
+            [string]$_.Cells["Value"].Value
+        })
+        $text = $values -join [Environment]::NewLine
+
+        if ($text.Length -eq 0) {
+            [System.Windows.Forms.Clipboard]::Clear()
+        }
+        else {
+            [System.Windows.Forms.Clipboard]::SetText($text)
+        }
+        Set-Status (Get-UiText "Status.ValuesCopied" @($values.Count)) "Ok"
+    }
+    catch {
+        Set-Status (Get-UiText "Status.ClipboardFailed" @($_.Exception.Message)) "Error"
+    }
+}
+
+function Export-GroupPropertiesWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:GroupPropertyRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetGroupPropertiesFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:GroupPropertyRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoGroupPropertiesToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleGroupPropertyRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleGroupProperties") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-AccountPropertyRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.GroupPropertiesFileNameBase") `
+        -SheetName (Get-UiText "Export.GroupPropertiesSheetName") `
+        -SaveTitle (Get-UiText "Export.GroupPropertiesSaveTitle") `
         -Widths @(28, 80, 10)
 }
 

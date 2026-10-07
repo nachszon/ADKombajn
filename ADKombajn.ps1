@@ -1,5 +1,5 @@
 ﻿#requires -Version 5.1
-# Build: 2.15.3-public
+# Build: 2.16.0-public
 # ADKombajn - rewritten from scratch
 # Author: Krzysztof Lipa-Izdebski
 # Requirements: Windows PowerShell 5.1 / .NET Framework, no RSAT or ActiveDirectory module.
@@ -37,19 +37,20 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-public class KombajnColorTabControlV21 : TabControl
+public class KombajnColorTabControlV22 : TabControl
 {
     public Color ValidateTabColor = Color.FromArgb(0, 135, 86);
     public Color ChangeTabColor   = Color.FromArgb(214, 126, 28);
     public Color ManagerTabColor  = Color.FromArgb(35, 98, 170);
     public Color AccountPropsTabColor = Color.FromArgb(0, 140, 132);
     public Color AccountGroupsTabColor = Color.FromArgb(0, 92, 185);
+    public Color GroupPropsTabColor = Color.FromArgb(125, 78, 160);
     public Color GroupMembersTabColor = Color.FromArgb(185, 42, 94);
     public Color ManagedGroupsTabColor = Color.FromArgb(82, 104, 201);
     public Color InactiveTextColor = Color.FromArgb(45, 55, 70);
     public Color SelectedTextColor = Color.White;
 
-    public KombajnColorTabControlV21()
+    public KombajnColorTabControlV22()
     {
         this.DrawMode = TabDrawMode.OwnerDrawFixed;
         this.SizeMode = TabSizeMode.Normal;
@@ -62,9 +63,10 @@ public class KombajnColorTabControlV21 : TabControl
         if (index == 1) return ChangeTabColor;
         if (index == 2) return AccountPropsTabColor;
         if (index == 3) return AccountGroupsTabColor;
-        if (index == 4) return GroupMembersTabColor;
-        if (index == 5) return ManagedGroupsTabColor;
-        if (index == 6) return ManagerTabColor;
+        if (index == 4) return GroupPropsTabColor;
+        if (index == 5) return GroupMembersTabColor;
+        if (index == 6) return ManagedGroupsTabColor;
+        if (index == 7) return ManagerTabColor;
         return Color.FromArgb(95, 105, 120);
     }
 
@@ -146,13 +148,15 @@ catch { }
 # ==================================================
 
 $script:AppName = "ADKombajn"
-$script:AppVersion = "2.15.3"
+$script:AppVersion = "2.16.0"
 $script:AppAuthor = "Krzysztof Lipa-Izdebski"
 $script:UiLanguage = if ($Language -in @("pl", "en")) { $Language.ToLowerInvariant() } else { "" }
 $script:ManagedRowsAll = @()
 $script:ManagedRowsLoaded = $false
 $script:AccountPropertyRows = @()
 $script:AccountPropertyRowsLoaded = $false
+$script:GroupPropertyRows = @()
+$script:GroupPropertyRowsLoaded = $false
 $script:AccountGroupRows = @()
 $script:AccountGroupRowsLoaded = $false
 $script:DomainGroupMemberRows = @()
@@ -2061,6 +2065,7 @@ $script:Translations = @{
         "Error.AccountNotFound" = "Nie znaleziono konta: {0}\{1}"
         "Error.ManagerNotFound" = "Nie znaleziono wskazanego konta: {0}\{1}"
         "Error.GroupNotFound" = "Nie znaleziono grupy: {0}\{1}"
+        "Error.IncompleteGroupAttribute" = "Nie udało się pobrać wszystkich wartości atrybutu {0}. Pobierz właściwości ponownie."
         "Error.ExportNoAccounts" = "Brak kont do eksportu."
         "Error.ExportNoRows" = "Brak rekordów do eksportu."
         "Error.ExcelColumn" = "Nieprawidłowy numer kolumny Excela: {0}"
@@ -2068,6 +2073,7 @@ $script:Translations = @{
         "Value.UnknownObject" = "Nie udało się pobrać obiektu po DN"
         "Progress.FindAccount" = "Szukam konta w AD"
         "Progress.ReadAccount" = "Odczytuję atrybuty konta"
+        "Progress.ReadGroup" = "Odczytuję atrybuty grupy"
         "Progress.ReadMemberOf" = "Pobieram grupy memberOf"
         "Progress.CheckPrimaryGroup" = "Sprawdzam grupę podstawową"
         "Progress.OrganizeResult" = "Porządkuję wynik"
@@ -2092,6 +2098,7 @@ $script:Translations = @{
         "Tab.ChangePassword" = "Zmiana hasła"
         "Tab.ManagerAccounts" = "Zarządzane konta"
         "Tab.AccountProperties" = "Właściwości konta"
+        "Tab.GroupProperties" = "Właściwości grupy"
         "Tab.AccountGroups" = "Grupy konta"
         "Tab.GroupMembers" = "Członkowie grupy"
         "Tab.ManagedGroups" = "Zarządzane grupy"
@@ -2115,11 +2122,17 @@ $script:Translations = @{
         "Common.Search" = "Szukaj:"
         "Common.ExportVisibleInfo" = "Eksport obejmuje aktualnie widoczne wiersze."
         "AccountProperties.Get" = "Pobierz właściwości"
+        "GroupProperties.Get" = "Pobierz właściwości"
         "AccountProperties.Info" = "Pokazuje atrybuty LDAP konta, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADUser -Properties *."
+        "GroupProperties.Info" = "Pokazuje atrybuty LDAP grupy, bez RSAT. Odpowiednik podglądu zbliżony do Get-ADGroup -Properties *."
         "AccountProperties.CopyValues" = "Kopiuj wartości"
+        "GroupProperties.CopyValues" = "Kopiuj wartości"
         "AccountProperties.CountEmpty" = "Właściwości: -"
+        "GroupProperties.CountEmpty" = "Właściwości: -"
         "AccountProperties.Count" = "Właściwości: {0}"
+        "GroupProperties.Count" = "Właściwości: {0}"
         "AccountProperties.CountFiltered" = "Właściwości: {0} z {1}"
+        "GroupProperties.CountFiltered" = "Właściwości: {0} z {1}"
         "AccountGroups.Get" = "Pobierz grupy"
         "AccountGroups.Info" = "Pokazuje grupy domenowe konta: memberOf oraz primaryGroupID, bez RSAT."
         "Groups.CountEmpty" = "Grupy: -"
@@ -2163,8 +2176,11 @@ $script:Translations = @{
         "Export.NoDataPart" = "brak"
         "Export.SaveTitle" = "Zapisz zarządzane konta"
         "Export.AccountPropertiesSheetName" = "Właściwości konta"
+        "Export.GroupPropertiesSheetName" = "Właściwości grupy"
         "Export.AccountPropertiesFileNameBase" = "wlasciwosci_konta"
+        "Export.GroupPropertiesFileNameBase" = "wlasciwosci_grupy"
         "Export.AccountPropertiesSaveTitle" = "Zapisz właściwości konta"
+        "Export.GroupPropertiesSaveTitle" = "Zapisz właściwości grupy"
         "Export.AccountGroupsSheetName" = "Grupy konta"
         "Export.AccountGroupsFileNameBase" = "grupy_konta"
         "Export.AccountGroupsSaveTitle" = "Zapisz grupy konta"
@@ -2215,13 +2231,21 @@ $script:Translations = @{
         "Status.PasswordChangeError" = "Błąd zmiany hasła dla {0}\{1}."
         "Status.EnterAccount" = "Podaj domenę/DC i login konta."
         "Status.GettingAccountProperties" = "Pobieram właściwości konta {0}\{1}..."
+        "Status.GettingGroupProperties" = "Pobieram właściwości grupy {0}\{1}..."
         "Status.AccountPropertiesReceived" = "OK - pobrano właściwości: {0}."
+        "Status.GroupPropertiesReceived" = "OK - pobrano właściwości: {0}."
         "Status.AccountPropertiesError" = "Błąd pobierania właściwości konta: {0}"
+        "Status.GroupPropertiesError" = "Błąd pobierania właściwości grupy: {0}"
         "Status.AccountPropertiesCleared" = "Właściwości konta wyczyszczone."
+        "Status.GroupPropertiesCleared" = "Właściwości grupy wyczyszczone."
         "Status.AccountPropertiesSearch" = "Wyszukiwanie atrybutu: '{0}' - pokazano {1} z {2} właściwości."
+        "Status.GroupPropertiesSearch" = "Wyszukiwanie atrybutu: '{0}' - pokazano {1} z {2} właściwości."
         "Status.GetAccountPropertiesFirst" = "Najpierw pobierz właściwości konta."
+        "Status.GetGroupPropertiesFirst" = "Najpierw pobierz właściwości grupy."
         "Status.NoAccountPropertiesToExport" = "Brak właściwości konta do eksportu."
+        "Status.NoGroupPropertiesToExport" = "Brak właściwości grupy do eksportu."
         "Status.NoVisibleAccountProperties" = "Wyszukiwanie nie zawiera żadnych właściwości do eksportu."
+        "Status.NoVisibleGroupProperties" = "Wyszukiwanie nie zawiera żadnych właściwości do eksportu."
         "Status.SelectProperties" = "Zaznacz właściwości do skopiowania."
         "Status.PropertiesCopied" = "Skopiowano zaznaczone właściwości: {0}."
         "Status.PropertiesCopyFailed" = "Nie udało się skopiować właściwości: {0}"
@@ -2299,6 +2323,7 @@ $script:Translations = @{
         "Error.AccountNotFound" = "Account not found: {0}\{1}"
         "Error.ManagerNotFound" = "Specified account not found: {0}\{1}"
         "Error.GroupNotFound" = "Group not found: {0}\{1}"
+        "Error.IncompleteGroupAttribute" = "Could not retrieve all values of attribute {0}. Retrieve the properties again."
         "Error.ExportNoAccounts" = "There are no accounts to export."
         "Error.ExportNoRows" = "There are no rows to export."
         "Error.ExcelColumn" = "Invalid Excel column number: {0}"
@@ -2306,6 +2331,7 @@ $script:Translations = @{
         "Value.UnknownObject" = "Could not retrieve the object by DN"
         "Progress.FindAccount" = "Searching for the account in AD"
         "Progress.ReadAccount" = "Reading account attributes"
+        "Progress.ReadGroup" = "Reading group attributes"
         "Progress.ReadMemberOf" = "Retrieving memberOf groups"
         "Progress.CheckPrimaryGroup" = "Checking the primary group"
         "Progress.OrganizeResult" = "Organizing results"
@@ -2330,6 +2356,7 @@ $script:Translations = @{
         "Tab.ChangePassword" = "Change password"
         "Tab.ManagerAccounts" = "Managed accounts"
         "Tab.AccountProperties" = "Account properties"
+        "Tab.GroupProperties" = "Group properties"
         "Tab.AccountGroups" = "Account groups"
         "Tab.GroupMembers" = "Group members"
         "Tab.ManagedGroups" = "Managed groups"
@@ -2353,11 +2380,17 @@ $script:Translations = @{
         "Common.Search" = "Search:"
         "Common.ExportVisibleInfo" = "The export includes the currently visible rows."
         "AccountProperties.Get" = "Get properties"
+        "GroupProperties.Get" = "Get properties"
         "AccountProperties.Info" = "Displays LDAP account attributes without RSAT, similar to Get-ADUser -Properties *."
+        "GroupProperties.Info" = "Displays LDAP group attributes without RSAT, similar to Get-ADGroup -Properties *."
         "AccountProperties.CopyValues" = "Copy values"
+        "GroupProperties.CopyValues" = "Copy values"
         "AccountProperties.CountEmpty" = "Properties: -"
+        "GroupProperties.CountEmpty" = "Properties: -"
         "AccountProperties.Count" = "Properties: {0}"
+        "GroupProperties.Count" = "Properties: {0}"
         "AccountProperties.CountFiltered" = "Properties: {0} of {1}"
+        "GroupProperties.CountFiltered" = "Properties: {0} of {1}"
         "AccountGroups.Get" = "Get groups"
         "AccountGroups.Info" = "Displays account domain groups from memberOf and primaryGroupID without RSAT."
         "Groups.CountEmpty" = "Groups: -"
@@ -2401,8 +2434,11 @@ $script:Translations = @{
         "Export.NoDataPart" = "none"
         "Export.SaveTitle" = "Save managed accounts"
         "Export.AccountPropertiesSheetName" = "Account properties"
+        "Export.GroupPropertiesSheetName" = "Group properties"
         "Export.AccountPropertiesFileNameBase" = "account_properties"
+        "Export.GroupPropertiesFileNameBase" = "group_properties"
         "Export.AccountPropertiesSaveTitle" = "Save account properties"
+        "Export.GroupPropertiesSaveTitle" = "Save group properties"
         "Export.AccountGroupsSheetName" = "Account groups"
         "Export.AccountGroupsFileNameBase" = "account_groups"
         "Export.AccountGroupsSaveTitle" = "Save account groups"
@@ -2453,13 +2489,21 @@ $script:Translations = @{
         "Status.PasswordChangeError" = "Password change failed for {0}\{1}."
         "Status.EnterAccount" = "Enter the domain/DC and account login."
         "Status.GettingAccountProperties" = "Retrieving properties for {0}\{1}..."
+        "Status.GettingGroupProperties" = "Retrieving properties for {0}\{1}..."
         "Status.AccountPropertiesReceived" = "OK - properties retrieved: {0}."
+        "Status.GroupPropertiesReceived" = "OK - properties retrieved: {0}."
         "Status.AccountPropertiesError" = "Error retrieving account properties: {0}"
+        "Status.GroupPropertiesError" = "Error retrieving group properties: {0}"
         "Status.AccountPropertiesCleared" = "Account properties cleared."
+        "Status.GroupPropertiesCleared" = "Group properties cleared."
         "Status.AccountPropertiesSearch" = "Attribute search: '{0}' - showing {1} of {2} properties."
+        "Status.GroupPropertiesSearch" = "Attribute search: '{0}' - showing {1} of {2} properties."
         "Status.GetAccountPropertiesFirst" = "Retrieve the account properties first."
+        "Status.GetGroupPropertiesFirst" = "Retrieve the group properties first."
         "Status.NoAccountPropertiesToExport" = "There are no account properties to export."
+        "Status.NoGroupPropertiesToExport" = "There are no group properties to export."
         "Status.NoVisibleAccountProperties" = "The search contains no account properties to export."
+        "Status.NoVisibleGroupProperties" = "The search contains no group properties to export."
         "Status.SelectProperties" = "Select properties to copy."
         "Status.PropertiesCopied" = "Selected properties copied: {0}."
         "Status.PropertiesCopyFailed" = "Could not copy properties: {0}"
@@ -4299,6 +4343,96 @@ function Find-AdGroupBasicNoRsat {
     }
 }
 
+function Get-AdGroupAllPropertiesNoRsat {
+    param(
+        [string]$DomainOrDc,
+        [string]$GroupIdentity,
+        $ProgressWindow = $null
+    )
+
+    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.FindGroup") -Detail "$DomainOrDc\$GroupIdentity" -Marquee $true
+    $group = Find-AdGroupBasicNoRsat -DomainOrDc $DomainOrDc -GroupIdentity $GroupIdentity
+    if ($null -eq $group -or (Is-Blank $group.DistinguishedName)) {
+        throw (Get-UiText "Error.GroupNotFound" @($DomainOrDc, $GroupIdentity))
+    }
+
+    $root = $null
+    $searcher = $null
+    try {
+        $root = New-Object System.DirectoryServices.DirectoryEntry((Get-LdapBasePath -DomainOrDc $DomainOrDc))
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher($root)
+        $searcher.SearchScope = [System.DirectoryServices.SearchScope]::Subtree
+        $escapedDn = Escape-LdapFilterValue -Value $group.DistinguishedName
+        $searcher.Filter = "(&(objectClass=group)(distinguishedName=$escapedDn))"
+        [void]$searcher.PropertiesToLoad.Add("*")
+        $result = $searcher.FindOne()
+        if ($null -eq $result) {
+            throw (Get-UiText "Error.GroupNotFound" @($DomainOrDc, $GroupIdentity))
+        }
+
+        $props = $result.Properties
+        # Members have a dedicated tab. Exclude both plain and ranged member
+        # before processing attributes, so no additional member ranges are fetched.
+        $propertyNames = @($props.PropertyNames | Where-Object {
+            $_ -ine "member" -and $_ -notlike "member;range=*"
+        } | Sort-Object)
+        $rangedNames = @{}
+        foreach ($name in $propertyNames) {
+            if ($name -match '^(.+);range=\d+-(\d+|\*)$') { $rangedNames[$Matches[1]] = $true }
+        }
+        $rows = New-Object System.Collections.Generic.List[object]
+        $index = 0
+        foreach ($name in $propertyNames) {
+            $index++
+            Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadGroup") -Detail "$index / $($propertyNames.Count)" -Value $index -Maximum $propertyNames.Count
+            $attribute = [string]$name
+            # AD can return an empty unqualified name alongside a range.
+            if ($rangedNames.ContainsKey($attribute)) { continue }
+            $values = New-Object System.Collections.Generic.List[object]
+            foreach ($value in $props[$name]) { $values.Add($value) }
+
+            if ($name -match '^(.+);range=(\d+)-(\d+|\*)$') {
+                $attribute = $Matches[1]
+                $first = [int]$Matches[2]
+                $last = $Matches[3]
+                if ($first -ne 0) { throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute)) }
+                # Advance using the actual server range, not a fixed page size.
+                while ($last -ne '*') {
+                    $next = [int]$last + 1
+                    $searcher.PropertiesToLoad.Clear()
+                    [void]$searcher.PropertiesToLoad.Add("${attribute};range=$next-*")
+                    Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.ReadGroup") -Detail "${attribute}: $($values.Count)" -Marquee $true
+                    $page = $searcher.FindOne()
+                    $rangeName = $null
+                    if ($null -ne $page) {
+                        foreach ($candidate in $page.Properties.PropertyNames) {
+                            if ($candidate -match ('^' + [regex]::Escape($attribute) + ';range=(\d+)-(\d+|\*)$')) {
+                                $pageStart = [int]$Matches[1]
+                                $pageEnd = $Matches[2]
+                                if ($pageStart -ne $next -or ($pageEnd -ne '*' -and [int]$pageEnd -lt $pageStart)) {
+                                    throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute))
+                                }
+                                $rangeName = [string]$candidate
+                                $last = $pageEnd
+                                break
+                            }
+                        }
+                    }
+                    if ($null -eq $rangeName) { throw (Get-UiText "Error.IncompleteGroupAttribute" @($attribute)) }
+                    foreach ($value in $page.Properties[$rangeName]) { $values.Add($value) }
+                }
+            }
+            $rows.Add((New-AccountPropertyRow -Attribute $attribute -Value (Convert-AdPropertyValueToText -Name $attribute -Value $values) -Count $values.Count))
+        }
+        Set-BusyProgressWindow -ProgressWindow $ProgressWindow -Message (Get-UiText "Progress.OrganizeResult") -Marquee $true
+        return @($rows.ToArray() | Sort-Object -Property Attribute)
+    }
+    finally {
+        if ($null -ne $searcher) { $searcher.Dispose() }
+        if ($null -ne $root) { $root.Dispose() }
+    }
+}
+
 function Get-AdGroupMemberDistinguishedNamesNoRsat {
     param(
         [string]$DomainOrDc,
@@ -5282,7 +5416,7 @@ $grpContext.Controls.AddRange(@($lblDomain, $txtDomain, $lblLogin, $txtLogin, $c
 $contextPanel.Controls.Add($grpContext)
 
 try {
-    $tabs = New-Object KombajnColorTabControlV21
+    $tabs = New-Object KombajnColorTabControlV22
 }
 catch {
     $tabs = New-Object System.Windows.Forms.TabControl
@@ -5316,6 +5450,10 @@ $tabAccountGroups = New-Object System.Windows.Forms.TabPage
 $tabAccountGroups.Text = Get-UiText "Tab.AccountGroups"
 $tabAccountGroups.BackColor = $script:Theme.Back
 
+$tabGroupProps = New-Object System.Windows.Forms.TabPage
+$tabGroupProps.Text = Get-UiText "Tab.GroupProperties"
+$tabGroupProps.BackColor = $script:Theme.Back
+
 $tabGroupMembers = New-Object System.Windows.Forms.TabPage
 $tabGroupMembers.Text = Get-UiText "Tab.GroupMembers"
 $tabGroupMembers.BackColor = $script:Theme.Back
@@ -5328,6 +5466,7 @@ $tabManagedGroups.BackColor = $script:Theme.Back
 [void]$tabs.TabPages.Add($tabChange)
 [void]$tabs.TabPages.Add($tabAccountProps)
 [void]$tabs.TabPages.Add($tabAccountGroups)
+[void]$tabs.TabPages.Add($tabGroupProps)
 [void]$tabs.TabPages.Add($tabGroupMembers)
 [void]$tabs.TabPages.Add($tabManagedGroups)
 [void]$tabs.TabPages.Add($tabManager)
@@ -5337,9 +5476,9 @@ $script:PreservedGroupName = ""
 $script:IsGroupContextActive = $false
 
 $tabs.Add_SelectedIndexChanged({
-    $isGroupMembersTab = ($tabs.SelectedTab -eq $tabGroupMembers)
+    $isGroupTab = (($tabs.SelectedTab -eq $tabGroupMembers) -or ($tabs.SelectedTab -eq $tabGroupProps))
 
-    if ($isGroupMembersTab -and -not $script:IsGroupContextActive) {
+    if ($isGroupTab -and -not $script:IsGroupContextActive) {
         $script:PreservedAccountLogin = $txtLogin.Text
         $txtLogin.Text = $script:PreservedGroupName
         $lblLogin.Text = Get-UiText "Context.GroupName"
@@ -5347,7 +5486,7 @@ $tabs.Add_SelectedIndexChanged({
         return
     }
 
-    if (-not $isGroupMembersTab -and $script:IsGroupContextActive) {
+    if (-not $isGroupTab -and $script:IsGroupContextActive) {
         $script:PreservedGroupName = $txtLogin.Text
         $txtLogin.Text = $script:PreservedAccountLogin
         $lblLogin.Text = Get-UiText "Context.AccountLogin"
@@ -5463,6 +5602,66 @@ $gridAccountProps.Columns[2].FillWeight = 6
 
 $tabAccountProps.Controls.Add($gridAccountProps)
 $tabAccountProps.Controls.Add($accountPropsTop)
+
+# ---- Group properties tab ----
+$groupPropsTop = New-Object System.Windows.Forms.Panel
+$groupPropsTop.Dock = [System.Windows.Forms.DockStyle]::Top
+$groupPropsTop.Height = 92
+$groupPropsTop.BackColor = $script:Theme.Back
+
+$btnGetGroupProps = New-FlatButton (Get-UiText "GroupProperties.Get") 18 16 160 34
+$btnClearGroupProps = New-SoftButton (Get-UiText "Common.Clear") 188 16 95 34
+$btnExportGroupPropsCsv = New-SoftButton (Get-UiText "Common.ExportCsv") 293 16 112 34
+$btnExportGroupPropsXlsx = New-SoftButton (Get-UiText "Common.ExportXlsx") 415 16 118 34
+$btnCopyGroupPropertyValues = New-SoftButton (Get-UiText "GroupProperties.CopyValues") 543 16 130 34
+
+$lblGroupPropsSearch = New-Label (Get-UiText "Common.Search") 18 60 55 22
+$txtGroupPropsSearch = New-TextBoxEx 73 57 250 $false
+
+$lblGroupPropsInfo = New-Label (Get-UiText "Common.ExportVisibleInfo") 340 58 490 22 8.5 ([System.Drawing.FontStyle]::Italic)
+$lblGroupPropsInfo.ForeColor = $script:Theme.Muted
+
+$lblGroupPropsCount = New-Label (Get-UiText "GroupProperties.CountEmpty") 850 22 230 24 10 ([System.Drawing.FontStyle]::Bold)
+$lblGroupPropsCount.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Right
+$lblGroupPropsCount.TextAlign = [System.Drawing.ContentAlignment]::MiddleRight
+
+$groupPropsTop.Controls.AddRange(@($btnGetGroupProps, $btnClearGroupProps, $btnExportGroupPropsCsv, $btnExportGroupPropsXlsx, $btnCopyGroupPropertyValues, $lblGroupPropsSearch, $txtGroupPropsSearch, $lblGroupPropsInfo, $lblGroupPropsCount))
+
+$gridGroupProps = New-Object System.Windows.Forms.DataGridView
+$gridGroupProps.Dock = [System.Windows.Forms.DockStyle]::Fill
+$gridGroupProps.AutoGenerateColumns = $false
+$gridGroupProps.ColumnHeadersVisible = $true
+$gridGroupProps.BackgroundColor = [System.Drawing.Color]::White
+$gridGroupProps.BorderStyle = [System.Windows.Forms.BorderStyle]::None
+$gridGroupProps.ReadOnly = $true
+$gridGroupProps.AllowUserToAddRows = $false
+$gridGroupProps.AllowUserToDeleteRows = $false
+$gridGroupProps.SelectionMode = [System.Windows.Forms.DataGridViewSelectionMode]::FullRowSelect
+$gridGroupProps.MultiSelect = $true
+$gridGroupProps.RowHeadersVisible = $false
+$gridGroupProps.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
+$gridGroupProps.ScrollBars = [System.Windows.Forms.ScrollBars]::Both
+$gridGroupProps.Font = New-UiFont 9
+$gridGroupProps.ColumnHeadersDefaultCellStyle.Font = New-UiFont 9 ([System.Drawing.FontStyle]::Bold)
+$gridGroupProps.ColumnHeadersDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(100, 62, 128)
+$gridGroupProps.ColumnHeadersDefaultCellStyle.ForeColor = [System.Drawing.Color]::White
+$gridGroupProps.ColumnHeadersDefaultCellStyle.SelectionBackColor = [System.Drawing.Color]::FromArgb(100, 62, 128)
+$gridGroupProps.EnableHeadersVisualStyles = $false
+$gridGroupProps.AlternatingRowsDefaultCellStyle.BackColor = [System.Drawing.Color]::FromArgb(245, 249, 253)
+$gridGroupProps.GridColor = $script:Theme.Border
+$gridGroupProps.RowTemplate.Height = 25
+$gridGroupProps.DefaultCellStyle.WrapMode = [System.Windows.Forms.DataGridViewTriState]::False
+Set-DoubleBuffered $gridGroupProps
+
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Attribute" (Get-UiText "Column.Attribute") 230 $true))
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Value" (Get-UiText "Column.Value") 720 $true))
+[void]$gridGroupProps.Columns.Add((New-TextGridColumn "Count" (Get-UiText "Column.Count") 60 $true))
+$gridGroupProps.Columns[0].FillWeight = 24
+$gridGroupProps.Columns[1].FillWeight = 70
+$gridGroupProps.Columns[2].FillWeight = 6
+
+$tabGroupProps.Controls.Add($gridGroupProps)
+$tabGroupProps.Controls.Add($groupPropsTop)
 
 # ---- Account groups tab ----
 $accountGroupsTop = New-Object System.Windows.Forms.Panel
@@ -5848,6 +6047,124 @@ function Export-AccountPropertiesWithDialog {
         -FileNameBase (Get-UiText "Export.AccountPropertiesFileNameBase") `
         -SheetName (Get-UiText "Export.AccountPropertiesSheetName") `
         -SaveTitle (Get-UiText "Export.AccountPropertiesSaveTitle") `
+        -Widths @(28, 80, 10)
+}
+
+function Set-GroupPropertiesGrid {
+    param([object[]]$Rows)
+
+    $gridGroupProps.SuspendLayout()
+    try {
+        $gridGroupProps.Rows.Clear()
+        if ($null -ne $Rows) {
+            foreach ($row in $Rows) {
+                [void]$gridGroupProps.Rows.Add(
+                    [string]$row.Attribute,
+                    [string]$row.Value,
+                    [string]$row.Count
+                )
+            }
+        }
+        $gridGroupProps.ClearSelection()
+    }
+    finally {
+        $gridGroupProps.ResumeLayout()
+    }
+}
+
+function Filter-GroupPropertyRows {
+    param([object[]]$Rows)
+
+    if ($null -eq $Rows) { return @() }
+    $query = ""
+    try { $query = $txtGroupPropsSearch.Text.Trim() } catch { }
+    if (Is-Blank $query) { return @($Rows) }
+
+    $q = $query.ToLowerInvariant()
+    return @($Rows | Where-Object {
+        ([string]$_.Attribute).ToLowerInvariant().Contains($q)
+    })
+}
+
+function Refresh-GroupPropertiesGrid {
+    $filteredRows = @(Filter-GroupPropertyRows -Rows $script:GroupPropertyRows)
+    $totalCount = @($script:GroupPropertyRows).Count
+    Set-GroupPropertiesGrid -Rows $filteredRows
+
+    if (Is-Blank $txtGroupPropsSearch.Text) {
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.Count" @($filteredRows.Count)
+    }
+    else {
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountFiltered" @($filteredRows.Count, $totalCount)
+    }
+    return $filteredRows.Count
+}
+
+function Update-GroupPropertiesSearchView {
+    if (-not $script:GroupPropertyRowsLoaded) { return }
+    $visibleCount = Refresh-GroupPropertiesGrid
+    $totalCount = @($script:GroupPropertyRows).Count
+    Set-Status (Get-UiText "Status.GroupPropertiesSearch" @($txtGroupPropsSearch.Text, $visibleCount, $totalCount)) "Info"
+}
+
+function Get-CurrentVisibleGroupPropertyRows {
+    if (-not $script:GroupPropertyRowsLoaded) { return @() }
+    return @(Filter-GroupPropertyRows -Rows $script:GroupPropertyRows)
+}
+
+function Copy-SelectedGroupPropertyValues {
+    try {
+        $selectedRows = @($gridGroupProps.SelectedRows | Where-Object {
+            $null -ne $_ -and -not $_.IsNewRow
+        } | Sort-Object -Property Index)
+
+        if ($selectedRows.Count -eq 0) {
+            Show-InfoBox (Get-UiText "Status.SelectRow") (Get-UiText "Dialog.NoSelection")
+            return
+        }
+
+        $values = @($selectedRows | ForEach-Object {
+            [string]$_.Cells["Value"].Value
+        })
+        $text = $values -join [Environment]::NewLine
+
+        if ($text.Length -eq 0) {
+            [System.Windows.Forms.Clipboard]::Clear()
+        }
+        else {
+            [System.Windows.Forms.Clipboard]::SetText($text)
+        }
+        Set-Status (Get-UiText "Status.ValuesCopied" @($values.Count)) "Ok"
+    }
+    catch {
+        Set-Status (Get-UiText "Status.ClipboardFailed" @($_.Exception.Message)) "Error"
+    }
+}
+
+function Export-GroupPropertiesWithDialog {
+    param([ValidateSet("CSV", "XLSX")][string]$Format)
+
+    if (-not $script:GroupPropertyRowsLoaded) {
+        Show-InfoBox (Get-UiText "Status.GetGroupPropertiesFirst") (Get-UiText "Dialog.NoData")
+        return
+    }
+    if (@($script:GroupPropertyRows).Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoGroupPropertiesToExport") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    $rows = @(Get-CurrentVisibleGroupPropertyRows)
+    if ($rows.Count -eq 0) {
+        Show-InfoBox (Get-UiText "Status.NoVisibleGroupProperties") (Get-UiText "Dialog.NoData")
+        return
+    }
+
+    Export-VisibleRowsWithDialog `
+        -Format $Format `
+        -ExportRows @(Convert-AccountPropertyRowsToExportRows -Rows $rows) `
+        -FileNameBase (Get-UiText "Export.GroupPropertiesFileNameBase") `
+        -SheetName (Get-UiText "Export.GroupPropertiesSheetName") `
+        -SaveTitle (Get-UiText "Export.GroupPropertiesSaveTitle") `
         -Widths @(28, 80, 10)
 }
 
@@ -6349,6 +6666,74 @@ $btnExportAccountPropsXlsx.Add_Click({ Export-AccountPropertiesWithDialog -Forma
 $btnCopyAccountPropertyValues.Add_Click({ Copy-SelectedAccountPropertyValues })
 $txtAccountPropsSearch.Add_TextChanged({ Update-AccountPropertiesSearchView })
 
+$btnGetGroupProps.Add_Click({
+    $domain = $txtDomain.Text.Trim()
+    $groupIdentity = $txtLogin.Text.Trim()
+
+    $script:GroupPropertyRows = @()
+    $script:GroupPropertyRowsLoaded = $false
+    Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+    $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+
+    if (Is-Blank $domain) {
+        Set-Status (Get-UiText "Status.EnterDomain") "Error"
+        return
+    }
+    if (Is-Blank $groupIdentity) {
+        Set-Status (Get-UiText "Status.EnterGroup") "Error"
+        return
+    }
+
+    $progressWindow = $null
+
+    try {
+        $btnGetGroupProps.Enabled = $false
+        $form.Enabled = $false
+        Set-Status (Get-UiText "Status.GettingGroupProperties" @($domain, $groupIdentity)) "Info"
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.GroupProperties") `
+            -Message (Get-UiText "Status.GettingGroupProperties" @($domain, $groupIdentity)) `
+            -Detail "$domain\$groupIdentity"
+        $script:GroupPropertyRows = @(Get-AdGroupAllPropertiesNoRsat -DomainOrDc $domain -GroupIdentity $groupIdentity -ProgressWindow $progressWindow)
+        $script:GroupPropertyRowsLoaded = $true
+        Refresh-GroupPropertiesGrid | Out-Null
+        Set-Status (Get-UiText "Status.GroupPropertiesReceived" @(@($script:GroupPropertyRows).Count)) "Ok"
+    }
+    catch {
+        $script:GroupPropertyRows = @()
+        $script:GroupPropertyRowsLoaded = $false
+        Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+        $msg = $_.Exception.Message
+        Set-Status (Get-UiText "Status.GroupPropertiesError" @($msg)) "Error"
+        # Re-enable the owner before closing its progress window so focus can return to it.
+        $form.Enabled = $true
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
+        Show-ErrorBox $msg (Get-UiText "Tab.GroupProperties")
+    }
+    finally {
+        # The owner must be enabled when Windows chooses the next active window.
+        $form.Enabled = $true
+        Close-BusyProgressWindow $progressWindow
+        $btnGetGroupProps.Enabled = $true
+    }
+})
+
+$btnClearGroupProps.Add_Click({
+    $script:GroupPropertyRows = @()
+    $script:GroupPropertyRowsLoaded = $false
+    Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+    $txtGroupPropsSearch.Clear()
+    $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+    Set-Status (Get-UiText "Status.GroupPropertiesCleared") "Info"
+})
+
+$btnExportGroupPropsCsv.Add_Click({ Export-GroupPropertiesWithDialog -Format "CSV" })
+$btnExportGroupPropsXlsx.Add_Click({ Export-GroupPropertiesWithDialog -Format "XLSX" })
+$btnCopyGroupPropertyValues.Add_Click({ Copy-SelectedGroupPropertyValues })
+$txtGroupPropsSearch.Add_TextChanged({ Update-GroupPropertiesSearchView })
+
 $btnGetAccountGroups.Add_Click({
     $domain = $txtDomain.Text.Trim()
     $login = $txtLogin.Text.Trim()
@@ -6618,7 +7003,7 @@ $form.Add_Shown({
 
 $form.Add_FormClosed({
     try {
-        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
+        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridGroupProps, $gridAccountGroups)) {
             if ($null -ne $ctrl) { $ctrl.Dispose() }
         }
         if ($null -ne $script:BrandImage) {

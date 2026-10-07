@@ -172,6 +172,74 @@ $btnExportAccountPropsXlsx.Add_Click({ Export-AccountPropertiesWithDialog -Forma
 $btnCopyAccountPropertyValues.Add_Click({ Copy-SelectedAccountPropertyValues })
 $txtAccountPropsSearch.Add_TextChanged({ Update-AccountPropertiesSearchView })
 
+$btnGetGroupProps.Add_Click({
+    $domain = $txtDomain.Text.Trim()
+    $groupIdentity = $txtLogin.Text.Trim()
+
+    $script:GroupPropertyRows = @()
+    $script:GroupPropertyRowsLoaded = $false
+    Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+    $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+
+    if (Is-Blank $domain) {
+        Set-Status (Get-UiText "Status.EnterDomain") "Error"
+        return
+    }
+    if (Is-Blank $groupIdentity) {
+        Set-Status (Get-UiText "Status.EnterGroup") "Error"
+        return
+    }
+
+    $progressWindow = $null
+
+    try {
+        $btnGetGroupProps.Enabled = $false
+        $form.Enabled = $false
+        Set-Status (Get-UiText "Status.GettingGroupProperties" @($domain, $groupIdentity)) "Info"
+        $progressWindow = Show-BusyProgressWindow `
+            -Title (Get-UiText "Tab.GroupProperties") `
+            -Message (Get-UiText "Status.GettingGroupProperties" @($domain, $groupIdentity)) `
+            -Detail "$domain\$groupIdentity"
+        $script:GroupPropertyRows = @(Get-AdGroupAllPropertiesNoRsat -DomainOrDc $domain -GroupIdentity $groupIdentity -ProgressWindow $progressWindow)
+        $script:GroupPropertyRowsLoaded = $true
+        Refresh-GroupPropertiesGrid | Out-Null
+        Set-Status (Get-UiText "Status.GroupPropertiesReceived" @(@($script:GroupPropertyRows).Count)) "Ok"
+    }
+    catch {
+        $script:GroupPropertyRows = @()
+        $script:GroupPropertyRowsLoaded = $false
+        Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+        $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+        $msg = $_.Exception.Message
+        Set-Status (Get-UiText "Status.GroupPropertiesError" @($msg)) "Error"
+        # Re-enable the owner before closing its progress window so focus can return to it.
+        $form.Enabled = $true
+        Close-BusyProgressWindow $progressWindow
+        $progressWindow = $null
+        Show-ErrorBox $msg (Get-UiText "Tab.GroupProperties")
+    }
+    finally {
+        # The owner must be enabled when Windows chooses the next active window.
+        $form.Enabled = $true
+        Close-BusyProgressWindow $progressWindow
+        $btnGetGroupProps.Enabled = $true
+    }
+})
+
+$btnClearGroupProps.Add_Click({
+    $script:GroupPropertyRows = @()
+    $script:GroupPropertyRowsLoaded = $false
+    Set-GroupPropertiesGrid -Rows $script:GroupPropertyRows
+    $txtGroupPropsSearch.Clear()
+    $lblGroupPropsCount.Text = Get-UiText "GroupProperties.CountEmpty"
+    Set-Status (Get-UiText "Status.GroupPropertiesCleared") "Info"
+})
+
+$btnExportGroupPropsCsv.Add_Click({ Export-GroupPropertiesWithDialog -Format "CSV" })
+$btnExportGroupPropsXlsx.Add_Click({ Export-GroupPropertiesWithDialog -Format "XLSX" })
+$btnCopyGroupPropertyValues.Add_Click({ Copy-SelectedGroupPropertyValues })
+$txtGroupPropsSearch.Add_TextChanged({ Update-GroupPropertiesSearchView })
+
 $btnGetAccountGroups.Add_Click({
     $domain = $txtDomain.Text.Trim()
     $login = $txtLogin.Text.Trim()
@@ -441,7 +509,7 @@ $form.Add_Shown({
 
 $form.Add_FormClosed({
     try {
-        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridAccountGroups)) {
+        foreach ($ctrl in @($form, $header, $contextPanel, $tabs, $gridManaged, $gridAccountProps, $gridGroupProps, $gridAccountGroups)) {
             if ($null -ne $ctrl) { $ctrl.Dispose() }
         }
         if ($null -ne $script:BrandImage) {

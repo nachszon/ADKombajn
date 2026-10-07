@@ -1,5 +1,5 @@
 ﻿param(
-    [string]$Version = "2.15.3.0",
+    [string]$Version = "2.16.0.0",
     [string]$InputFile = ".\ADKombajn.ps1",
     [string]$IconFile = ".\kombajn.ico",
     [string]$OutputDirectory = ".",
