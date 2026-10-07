@@ -8,7 +8,7 @@ The project follows Semantic Versioning where practical:
 MAJOR.MINOR.PATCH
 ```
 
-## [2.16.0] - Unreleased
+## [2.16.0] - 2026-10-07
 
 ### Fixed
 
